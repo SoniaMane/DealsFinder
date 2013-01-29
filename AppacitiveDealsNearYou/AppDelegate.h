@@ -11,7 +11,7 @@
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
 extern NSString *const SCSessionStateChangedNotification;
-
+extern NSString *const FacebookAccessTokenKey;
 @property (strong, nonatomic) UIWindow *window;
 
 - (void)openSession;

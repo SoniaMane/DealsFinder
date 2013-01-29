@@ -9,10 +9,6 @@
 #import "StoreCell.h"
 
 @interface StoreCell()
-@property (weak, nonatomic) IBOutlet UIImageView *storeImageView;
-@property (weak, nonatomic) IBOutlet UILabel *storeAddressLabel;
-@property (weak, nonatomic) IBOutlet UILabel *storeNameLabel;
-@property (weak, nonatomic) IBOutlet UILabel *storePhoneLabel;
 @end
 
 @implementation StoreCell

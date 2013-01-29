@@ -6,9 +6,8 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
-
-@interface CreateDealViewController : UIViewController
-- (IBAction)backToSelectStore:(id)sender;
-
+#import "DateChangeListener.h"
+@class Store;
+@interface CreateDealViewController : UIViewController <UINavigationControllerDelegate, UIImagePickerControllerDelegate, UITextFieldDelegate, CLLocationManagerDelegate, DateChangeListener>
+- (void) setEndPointA:(Store *) store;
 @end

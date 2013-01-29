@@ -6,9 +6,7 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
+#import "StoreListProtocol.h"
 
-@interface StoreListViewController : UITableViewController
-- (IBAction)revealPublishOptions:(id)sender;
-@property (strong, nonatomic) IBOutlet UITableView *storeTableView;
+@interface StoreListViewController : UITableViewController <UITableViewDataSource, UITableViewDelegate, StoreListProtocol>
 @end
