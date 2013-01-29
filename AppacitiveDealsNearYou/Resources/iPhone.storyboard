@@ -14,11 +14,12 @@
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Jor-iM-sVO">
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="57" id="Bif-M1-7Rr"/>
-                                    <constraint firstAttribute="width" constant="202" id="nfG-py-DgW"/>
+                                    <constraint firstAttribute="width" constant="157" id="A5G-IL-9HM"/>
+                                    <constraint firstAttribute="height" constant="37" id="ea1-BY-x2z"/>
                                 </constraints>
                                 <fontDescription key="fontDescription" type="boldSystem" size="button"/>
-                                <state key="normal" title="Login with facebook">
+                                <inset key="contentEdgeInsets" minX="55" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                <state key="normal" backgroundImage="fb_icon.png">
                                     <color key="titleColor" red="0.19607843137254902" green="0.30980392156862746" blue="0.52156862745098043" alpha="1" colorSpace="calibratedRGB"/>
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
@@ -31,36 +32,55 @@
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ch6-n8-ue8">
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="55" id="wIb-JI-rtw"/>
+                                    <constraint firstAttribute="height" constant="35" id="h0E-RW-hLa"/>
                                 </constraints>
                                 <fontDescription key="fontDescription" type="boldSystem" pointSize="18"/>
-                                <state key="normal" title="Login with twitter">
+                                <state key="normal" backgroundImage="twitter_icon.png">
                                     <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="calibratedRGB"/>
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <state key="highlighted">
                                     <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="loginWithTwitter:" destination="5nw-ig-Qi0" eventType="touchUpInside" id="uUg-8o-PzR"/>
+                                </connections>
                             </button>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Deal finder" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="f18-TC-FDC">
                                 <constraints>
                                     <constraint firstAttribute="width" constant="147" id="gZh-bA-ErC"/>
                                     <constraint firstAttribute="height" constant="44" id="sWP-Rc-sMY"/>
                                 </constraints>
-                                <fontDescription key="fontDescription" type="system" pointSize="28"/>
-                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <fontDescription key="fontDescription" name="Arial-BoldMT" family="Arial" pointSize="28"/>
+                                <color key="textColor" red="0.60000002384185791" green="0.40000000596046448" blue="0.20000000298023224" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="user_fb.png" translatesAutoresizingMaskIntoConstraints="NO" id="nk3-GJ-3LZ">
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="70" id="hge-X0-Zgg"/>
+                                    <constraint firstAttribute="height" constant="79" id="vKP-hk-53d"/>
+                                </constraints>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="user_tw.png" translatesAutoresizingMaskIntoConstraints="NO" id="hFE-p6-DFw">
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="79" id="cwj-vt-bx6"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
-                            <constraint firstItem="Ch6-n8-ue8" firstAttribute="trailing" secondItem="Jor-iM-sVO" secondAttribute="trailing" type="default" id="5BN-5O-OPD"/>
-                            <constraint firstItem="f18-TC-FDC" firstAttribute="top" secondItem="aaX-da-J07" secondAttribute="top" constant="52" id="D3G-E8-x9f"/>
-                            <constraint firstAttribute="bottom" secondItem="Ch6-n8-ue8" secondAttribute="bottom" constant="136" id="EXG-mu-tLl"/>
-                            <constraint firstItem="Jor-iM-sVO" firstAttribute="leading" secondItem="aaX-da-J07" secondAttribute="leading" constant="65" id="bdL-rb-BAr"/>
-                            <constraint firstItem="f18-TC-FDC" firstAttribute="centerX" secondItem="aaX-da-J07" secondAttribute="centerX" type="default" id="h6q-Gn-rv0"/>
-                            <constraint firstItem="Jor-iM-sVO" firstAttribute="top" secondItem="aaX-da-J07" secondAttribute="top" constant="191" id="jsp-Mu-4fB"/>
-                            <constraint firstItem="Ch6-n8-ue8" firstAttribute="leading" secondItem="Jor-iM-sVO" secondAttribute="leading" type="default" id="sjo-5G-mqe"/>
+                            <constraint firstItem="f18-TC-FDC" firstAttribute="centerX" secondItem="aaX-da-J07" secondAttribute="centerX" type="default" id="083-aU-Sj1"/>
+                            <constraint firstItem="Ch6-n8-ue8" firstAttribute="centerY" secondItem="hFE-p6-DFw" secondAttribute="centerY" type="default" id="6mN-tn-O3Y"/>
+                            <constraint firstItem="hFE-p6-DFw" firstAttribute="leading" secondItem="aaX-da-J07" secondAttribute="leading" constant="20" symbolic="YES" type="default" id="B1H-bK-of1"/>
+                            <constraint firstItem="Ch6-n8-ue8" firstAttribute="leading" secondItem="Jor-iM-sVO" secondAttribute="leading" type="default" id="DVM-qF-Pfd"/>
+                            <constraint firstItem="nk3-GJ-3LZ" firstAttribute="top" secondItem="aaX-da-J07" secondAttribute="top" constant="188" id="OlA-zj-i2P"/>
+                            <constraint firstAttribute="trailing" secondItem="Ch6-n8-ue8" secondAttribute="trailing" constant="20" symbolic="YES" type="default" id="XAh-dJ-2aZ"/>
+                            <constraint firstItem="f18-TC-FDC" firstAttribute="top" secondItem="aaX-da-J07" secondAttribute="top" constant="79" id="YWB-gP-l6H"/>
+                            <constraint firstItem="nk3-GJ-3LZ" firstAttribute="leading" secondItem="aaX-da-J07" secondAttribute="leading" constant="20" symbolic="YES" type="default" id="bgs-Df-bkA"/>
+                            <constraint firstAttribute="bottom" secondItem="hFE-p6-DFw" secondAttribute="bottom" constant="101" id="c6i-yw-bUr"/>
+                            <constraint firstAttribute="trailing" secondItem="Jor-iM-sVO" secondAttribute="trailing" constant="20" symbolic="YES" type="default" id="k56-Ng-weS"/>
+                            <constraint firstItem="nk3-GJ-3LZ" firstAttribute="centerY" secondItem="Jor-iM-sVO" secondAttribute="centerY" type="default" id="l1L-tW-VCm"/>
+                            <constraint firstItem="hFE-p6-DFw" firstAttribute="trailing" secondItem="nk3-GJ-3LZ" secondAttribute="trailing" type="default" id="svz-ue-FbQ"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -749,9 +769,13 @@
         <image name="check_in.png" width="103" height="29"/>
         <image name="check_out.png" width="103" height="29"/>
         <image name="crd_card_bg.png" width="348" height="32"/>
+        <image name="fb_icon.png" width="193" height="30"/>
         <image name="photo_not_available.png" width="90" height="57"/>
         <image name="photo_not_available_large.png" width="400" height="300"/>
         <image name="reveal-icon.png" width="22" height="17"/>
+        <image name="twitter_icon.png" width="190" height="34"/>
+        <image name="user_fb.png" width="57" height="57"/>
+        <image name="user_tw.png" width="57" height="57"/>
     </resources>
     <classes>
         <class className="CreateDealViewController" superclassName="UIViewController">
@@ -799,7 +823,6 @@
         <class className="DealDetailViewController" superclassName="UIViewController">
             <source key="sourceIdentifier" type="project" relativePath="./Classes/DealDetailViewController.h"/>
             <relationships>
-                <relationship kind="action" name="upvoteButtonPressed:"/>
                 <relationship kind="outlet" name="activityIndicatorView" candidateClass="UIActivityIndicatorView"/>
                 <relationship kind="outlet" name="selectedDealImage" candidateClass="UIImageView"/>
                 <relationship kind="outlet" name="upvoteButton" candidateClass="UIButton"/>
@@ -810,15 +833,11 @@
             <source key="sourceIdentifier" type="project" relativePath="./Classes/DealsListViewController.h"/>
             <relationships>
                 <relationship kind="action" name="showMenu:"/>
-                <relationship kind="action" name="signOut:"/>
                 <relationship kind="outlet" name="dealTableView" candidateClass="UITableView"/>
             </relationships>
         </class>
         <class className="LoginViewController" superclassName="UIViewController">
             <source key="sourceIdentifier" type="project" relativePath="./Classes/LoginViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="loginWithFacebook:"/>
-            </relationships>
         </class>
         <class className="NSLayoutConstraint" superclassName="NSObject">
             <source key="sourceIdentifier" type="project" relativePath="./Classes/NSLayoutConstraint.h"/>

@@ -6,5 +6,5 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-@interface DealsListViewController : UITableViewController <UITableViewDataSource, UITableViewDelegate>
+@interface DealsListViewController : UITableViewController <UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate>
 @end
