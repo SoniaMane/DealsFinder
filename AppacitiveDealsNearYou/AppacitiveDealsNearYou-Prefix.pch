@@ -14,5 +14,6 @@
     #import <Appacitive-iOS-SDK/AppacitiveSDK.h>
     #import <Facebook-iOS-SDK/FacebookSDK/FacebookSDK.h>
     #import "SWRevealViewController.h"
-    #import <JSNotifier.h>
+    #import <AJNotificationView/AJNotificationView.h>
+
 #endif

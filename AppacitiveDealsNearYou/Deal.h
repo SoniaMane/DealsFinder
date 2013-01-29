@@ -15,4 +15,6 @@
 @property (strong, nonatomic) NSString *dealEndDate;
 @property (strong, nonatomic) NSString *dealDescription;
 @property (strong, nonatomic) NSString *dealLocation;
+@property (copy, nonatomic) NSString *dealImageKey;
+
 @end

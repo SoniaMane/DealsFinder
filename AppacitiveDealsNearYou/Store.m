@@ -11,6 +11,6 @@
 @implementation Store
 
 - (NSString *)description {
-    return [NSString stringWithFormat:@"Stores fetched are - Name: %@, Address:%@, Phone No.:%@", _storeName, _storeAddress, _storePhone];
+    return [NSString stringWithFormat:@"Stores fetched are - Object id:%@, Name: %@, Address:%@, Phone No.:%@, Location:%@",_objectId, _storeName, _storeAddress, _storePhone, _storeLocation];
 }
 @end

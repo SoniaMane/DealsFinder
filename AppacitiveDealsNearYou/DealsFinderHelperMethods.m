@@ -22,4 +22,12 @@
     return [dateFormatter stringFromDate:date];
 }
 
++ (CLLocation *) jsonLocationStringToLatLng: (NSString *) locationString {
+    NSArray *latLngString = [locationString componentsSeparatedByString:@","];
+    
+    NSString *lat = [latLngString objectAtIndex:0];
+    NSString *lng = [latLngString objectAtIndex:1];
+    CLLocation *location = [[CLLocation alloc]initWithLatitude:[lat doubleValue] longitude:[lng doubleValue]];
+    return location;
+}
 @end
