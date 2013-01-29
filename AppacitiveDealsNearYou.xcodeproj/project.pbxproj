@@ -28,6 +28,7 @@
 		6132CD5316AE6C00009FEC58 /* nav_menu_icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 6132CD4916AE6C00009FEC58 /* nav_menu_icon.png */; };
 		6132CD5616AE91BD009FEC58 /* DealsFinderHelperMethods.m in Sources */ = {isa = PBXBuildFile; fileRef = 6132CD5516AE91BD009FEC58 /* DealsFinderHelperMethods.m */; };
 		6132CD5E16AEA1A3009FEC58 /* photo_not_available.png in Resources */ = {isa = PBXBuildFile; fileRef = 6132CD5D16AEA1A3009FEC58 /* photo_not_available.png */; };
+		70DED44D16B78EBC00DA5CFD /* CustomDatePicker.m in Sources */ = {isa = PBXBuildFile; fileRef = 70DED44B16B78EBC00DA5CFD /* CustomDatePicker.m */; };
 		9720E38216A6664700967FE0 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9720E38116A6664700967FE0 /* CoreLocation.framework */; };
 		973E5D0316A40DC600E1BDD8 /* LoginViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 973E5D0216A40DC600E1BDD8 /* LoginViewController.m */; };
 		9760C6B516A4132E00D62309 /* SlidingViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9760C6B416A4132E00D62309 /* SlidingViewController.m */; };
@@ -94,6 +95,9 @@
 		6132CD5416AE91BD009FEC58 /* DealsFinderHelperMethods.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DealsFinderHelperMethods.h; sourceTree = "<group>"; };
 		6132CD5516AE91BD009FEC58 /* DealsFinderHelperMethods.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DealsFinderHelperMethods.m; sourceTree = "<group>"; };
 		6132CD5D16AEA1A3009FEC58 /* photo_not_available.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = photo_not_available.png; sourceTree = "<group>"; };
+		70DED44A16B78EBC00DA5CFD /* CustomDatePicker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CustomDatePicker.h; sourceTree = "<group>"; };
+		70DED44B16B78EBC00DA5CFD /* CustomDatePicker.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CustomDatePicker.m; sourceTree = "<group>"; };
+		70DED44C16B78EBC00DA5CFD /* DateChangeListener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DateChangeListener.h; sourceTree = "<group>"; };
 		9720E38116A6664700967FE0 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		973E5D0116A40DC600E1BDD8 /* LoginViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoginViewController.h; sourceTree = "<group>"; };
 		973E5D0216A40DC600E1BDD8 /* LoginViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LoginViewController.m; sourceTree = "<group>"; };
@@ -199,6 +203,16 @@
 			path = AppacitiveDealsNearYou/Resources;
 			sourceTree = "<group>";
 		};
+		70DED44816B78EAC00DA5CFD /* CustomViews */ = {
+			isa = PBXGroup;
+			children = (
+				70DED44A16B78EBC00DA5CFD /* CustomDatePicker.h */,
+				70DED44B16B78EBC00DA5CFD /* CustomDatePicker.m */,
+				70DED44C16B78EBC00DA5CFD /* DateChangeListener.h */,
+			);
+			name = CustomViews;
+			sourceTree = "<group>";
+		};
 		9760C6B116A4131700D62309 /* ViewControllers */ = {
 			isa = PBXGroup;
 			children = (
@@ -290,6 +304,7 @@
 		97D1A69D16A3D810000010B4 /* AppacitiveDealsNearYou */ = {
 			isa = PBXGroup;
 			children = (
+				70DED44816B78EAC00DA5CFD /* CustomViews */,
 				97D1A6A616A3D810000010B4 /* AppDelegate.h */,
 				97D1A6A716A3D810000010B4 /* AppDelegate.m */,
 				97CF711016A922740042AA65 /* Classes */,
@@ -485,6 +500,7 @@
 				97C9474916AD9A7C00B707EC /* StoreImage.m in Sources */,
 				6132CD5616AE91BD009FEC58 /* DealsFinderHelperMethods.m in Sources */,
 				610EA7DA16AEEB9C002046A0 /* SWRevealViewController.m in Sources */,
+				70DED44D16B78EBC00DA5CFD /* CustomDatePicker.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
