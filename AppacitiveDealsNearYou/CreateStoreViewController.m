@@ -19,6 +19,7 @@
     NSString *_storeLocationCoord;
     NSString *_storeId;
     NSString *_storeLabel;
+    AJNotificationView *_panel;
 }
 @property (strong, nonatomic) Store *store;
 @property (strong, nonatomic) CLGeocoder *geoCoder;
@@ -29,6 +30,7 @@
 @property (weak, nonatomic) IBOutlet UITextField *storePhoneNumber;
 @property (weak, nonatomic) IBOutlet UIButton *fetchLocationText;
 @property (weak, nonatomic) IBOutlet UIBarButtonItem *finishedCreatingDealOutlet;
+@property (strong, nonatomic) IBOutlet UIView *view;
 
 - (IBAction)clickStorePhoto:(id)sender;
 - (IBAction)fetchLocation:(id)sender;
@@ -88,11 +90,15 @@
         _fetchLocationText.layer.borderColor = clearColor;
     }
     if (!isValid) {
-        [AJNotificationView showNoticeInView:self.view
+        _panel = [AJNotificationView showNoticeInView:self.view
             type:AJNotificationTypeRed
             title:@"Fill the missing fields!"
             linedBackground:AJLinedBackgroundTypeAnimated
-            hideAfter:2.5f response:^{}];
+            hideAfter:0 response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
+
       }
     return isValid;
 }

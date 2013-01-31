@@ -9,7 +9,8 @@
 typedef void (^LoginWithFacebookSuccessful) ();
 typedef void (^LoginWithTwitterSuccessfull) ();
 
-@interface LoginViewController : UIViewController
+@interface LoginViewController : UIViewController <UIActionSheetDelegate>
 @property (nonatomic, copy) LoginWithFacebookSuccessful loginWithFacebookSuccessful;
 @property (nonatomic, copy) LoginWithTwitterSuccessfull loginWithTwitterSuccessful;
+@property (strong, nonatomic) IBOutlet UIButton *loginWithTwiterButton;
 @end

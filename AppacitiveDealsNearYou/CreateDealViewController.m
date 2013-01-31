@@ -33,6 +33,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *getEndDateOutlet;
 @property (weak, nonatomic) IBOutlet UIButton *clickDealOutlet;
 @property (weak, nonatomic) IBOutlet UIButton *locationLabel;
+@property (strong, nonatomic) IBOutlet UIView *view;
 - (IBAction)clickDealPhoto:(id)sender;
 - (IBAction)fetchCurrentLocation:(id)sender;
 - (IBAction)getDealStartDate:(id)sender;
@@ -85,13 +86,18 @@
 }
 
 - (IBAction)getDealEndDate:(id)sender {
-    [_scrollView setContentOffset:CGPointMake(0, _dealNameText.frame.origin.y) animated:YES];
     if (_startDate != nil) {
+        [_scrollView setContentOffset:CGPointMake(0, _dealNameText.frame.origin.y) animated:YES];
         _customPicker = [[CustomDatePicker alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 420) andSender:sender];
         [_customPicker setMinDate:_startDate];
         _customPicker.delegate = self;
     } else {
-        
+        [AJNotificationView showNoticeInView:self.view
+            type:AJNotificationTypeOrange
+            title:@"Select start date first!"
+            linedBackground:AJLinedBackgroundTypeAnimated
+            hideAfter:5.5f response:^{}];
+
     }
         [self.view addSubview:_customPicker];
 }
@@ -235,7 +241,7 @@
 #pragma mark Date change listener methods
 
 - (void) onCancelButtonPressed {
-    [_scrollView setContentOffset:CGPointMake(0, 0) animated:YES];
+    [_scrollView setContentOffset:CGPointMake(0, self.view.frame.origin.y + _clickDealOutlet.frame.size.width/2) animated:YES];
     [_customPicker removeFromSuperview];
 }
 
@@ -257,7 +263,8 @@
         _deal.dealEndDate = _endDateString;
         [_getEndDateOutlet setTitle:displayDate forState:UIControlStateNormal];
     }
-    [_scrollView setContentOffset:CGPointMake(0, 0) animated:YES];
+    
+    [_scrollView setContentOffset:CGPointMake(0, self.view.frame.origin.y + _clickDealOutlet.frame.size.width/2) animated:YES];
     [_customPicker removeFromSuperview];
 }
 

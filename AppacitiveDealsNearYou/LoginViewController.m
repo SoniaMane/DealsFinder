@@ -8,24 +8,71 @@
 
 #import "LoginViewController.h"
 #import "AppDelegate.h"
+#import "AppDelegate.h"
+
+@interface LoginViewController () {
+    AJNotificationView *_panel;
+}
+
+@end
 
 @implementation LoginViewController
 
+- (id)initWithCoder:(NSCoder *)aDecoder {
+    self = [super initWithCoder:aDecoder];
+    if (self) {
+       
+    }
+    return self;
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+}
 - (void) viewDidLoad {
     [super viewDidLoad];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(facebookSessionChangedNotification:) name:SCSessionStateChangedNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(twitterOAuthTokenReceived:) name:TwitterAccessTokenKeyReceivedNotification object:nil];
 }
 
+- (void)viewDidDisappear:(BOOL)animated {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void) twitterOAuthTokenReceived:(NSNotification *) notification {
+    NSString *twitterAccessToken = [[notification userInfo] objectForKey:@"twitterOAuthToken"];
+    NSLog(@"twitter access token is %@", twitterAccessToken);
+    if (twitterAccessToken != nil && twitterAccessToken != @"" && self.loginWithTwitterSuccessful != nil) {
+        self.loginWithTwitterSuccessful();
+    } else {
+        _panel = [AJNotificationView showNoticeInView:self.view
+            type:AJNotificationTypeRed
+            title:@"Login with twitter failed !"
+            linedBackground:AJLinedBackgroundTypeAnimated  hideAfter:2.5f response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
+    }
+}
 - (void) facebookSessionChangedNotification:(NSNotification*)notification {
     FBSession *session = [[notification userInfo] objectForKey:@"session"];
     if (session.state == FBSessionStateOpen && self.loginWithFacebookSuccessful != nil) {
         self.loginWithFacebookSuccessful();
     } else {
-        //through an error in the form of a on screen notification
+        _panel = [AJNotificationView showNoticeInView:self.view
+            type:AJNotificationTypeRed
+            title:@"Login with facebook failed !"
+            linedBackground:AJLinedBackgroundTypeAnimated  hideAfter:2.5f response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
     }
 }
 
 - (IBAction)loginWithFacebook:(id)sender {
     [ApplicationDelegate openSession];
+}
+- (IBAction)loginWithTwitter:(id)sender {
+    [ApplicationDelegate getTwitterOAuthTokenUsingReverseOAuth];
 }
 @end

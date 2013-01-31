@@ -12,6 +12,7 @@
 @interface DealDetailViewController () {
     int _voteCount;
     JSNotifier *_notifier;
+    AJNotificationView *_panel;
 }
 @property (weak, nonatomic) IBOutlet UIImageView *selectedDealImage;
 @property (weak, nonatomic) IBOutlet UILabel *votes;
@@ -50,14 +51,13 @@
 
 - (IBAction)upvoteButtonPressed:(id)sender {
     
-    [_notifier hide];
-    
-    UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc]initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
-    [activityIndicator startAnimating];
-    
-    _notifier = [[JSNotifier alloc]initWithTitle:@"Updating Vote Count.."];
-    _notifier.accessoryView = activityIndicator;
-    [_notifier show];
+    _panel = [AJNotificationView showNoticeInView:self.view
+                                             type:AJNotificationTypeBlue
+                                            title:@"Updating Vote Count..!"
+                                  linedBackground:AJLinedBackgroundTypeAnimated
+                                        hideAfter:5.5f response:^{}];
+    if (_panel)
+        [_panel hide];
     
     [_upvoteButton setEnabled:NO];
 
@@ -74,22 +74,38 @@
                                    
                                    _voteCount = _voteCount + 1;
                                    [_votes setText:[NSString stringWithFormat:@"%d",_voteCount]];
-                                   
-                                   [_notifier setAccessoryView:[[UIImageView alloc]initWithImage:[UIImage imageNamed:@"NotifyCheck.png"]] animated:YES];
-                                   [_notifier setTitle:@"Vote Count Updated" animated:YES];
-                                   [_notifier hideIn:2.0];
-                                   
+
+                                   _panel = [AJNotificationView showNoticeInView:self.view
+                                                type:AJNotificationTypeGreen
+                                                title:@"Vote count updated!"
+                                                linedBackground:AJLinedBackgroundTypeAnimated
+                                                hideAfter:5.5f response:^{}];
+                                   if (_panel)
+                                       [_panel hide];
+
                                } failureHandler:^(APError *error) {
                                    NSLog(@"The error is %@",[error description]);
-                                   [_notifier setAccessoryView:[[UIImageView alloc]initWithImage:[UIImage imageNamed:@"NotifyX.png"]] animated:YES];
+
                                    if(error.code == 7006) {
-                                       [_notifier setTitle:@"You have already upvoted this deal" animated:YES];
+                                       _panel = [AJNotificationView showNoticeInView:self.view
+                                                    type:AJNotificationTypeRed
+                                                    title:@"You have already upvoted this deal."
+                                                    linedBackground:AJLinedBackgroundTypeAnimated
+                                                    hideAfter:5.5f response:^{}];
+                                       if (_panel)
+                                           [_panel hide];
+
                                    } else {
                                        self.upvoteButton.enabled = YES;
-                                       [_notifier setTitle:@"Error while updating vote count" animated:YES];
+
+                                       _panel = [AJNotificationView showNoticeInView:self.view
+                                                    type:AJNotificationTypeRed
+                                                    title:@"Error while updating vote count!"
+                                                    linedBackground:AJLinedBackgroundTypeAnimated
+                                                    hideAfter:5.5f response:^{}];
+                                       if (_panel)
+                                           [_panel hide];
                                    }
-                                   [_notifier hideIn:2.0];
-                                   
                                }];
 }
 

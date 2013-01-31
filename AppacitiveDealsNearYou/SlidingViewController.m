@@ -27,11 +27,17 @@
 - (void) appacitiveSessionReceived {
     if (FBSession.activeSession.state == FBSessionStateCreatedTokenLoaded) {
         [ApplicationDelegate openSession];
+        //[ApplicationDelegate getTwitterOAuthTokenUsingReverseOAuth];
+
     } else {
         UIStoryboard *storyBoardTemp = [UIStoryboard storyboardWithName:@"iPhone" bundle:nil];
         __weak LoginViewController *loginViewController = (LoginViewController*) [storyBoardTemp instantiateViewControllerWithIdentifier:@"Login"];
         
         loginViewController.loginWithFacebookSuccessful = ^() {
+            [loginViewController dismissViewControllerAnimated:YES completion:nil];
+        };
+        loginViewController.loginWithTwitterSuccessful = ^() {
+            [loginViewController.loginWithTwiterButton setEnabled:NO];
             [loginViewController dismissViewControllerAnimated:YES completion:nil];
         };
         [self presentViewController:loginViewController animated:YES completion:nil];

@@ -8,5 +8,5 @@
 
 #import "StoreListProtocol.h"
 
-@interface StoreListViewController : UITableViewController <UITableViewDataSource, UITableViewDelegate, StoreListProtocol>
+@interface StoreListViewController : UITableViewController <UITableViewDataSource, UITableViewDelegate, StoreListProtocol, UISearchBarDelegate, UISearchDisplayDelegate>
 @end
