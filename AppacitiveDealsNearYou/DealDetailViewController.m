@@ -12,7 +12,7 @@
 @interface DealDetailViewController () {
     int _voteCount;
     JSNotifier *_notifier;
-    AJNotificationView *_panel;
+    __block AJNotificationView *_panel;
 }
 @property (weak, nonatomic) IBOutlet UIImageView *selectedDealImage;
 @property (weak, nonatomic) IBOutlet UILabel *votes;

@@ -26,6 +26,7 @@
 #import "TWAPIManager.h"
 #import "TWSignedRequest.h"
 #import "LoginViewController.h"
+#import "SlidingViewController.h"
 
 @interface DealsListViewController ()<FBUserSettingsDelegate> {
     int _pNum;
@@ -33,7 +34,7 @@
     CLLocationManager *_locationManager;
     CLPlacemark *_placemark;
     CLLocation *_currentLocation;
-    AJNotificationView *_panel;
+    __block AJNotificationView *_panel;
     UISearchDisplayController *searchDisplayController;
 }
 
@@ -49,6 +50,7 @@
 @property (strong, nonatomic) IBOutlet UITableViewCell *dealCell;
 @property (weak, nonatomic) IBOutlet UIBarButtonItem *showMenuOutlet;
 
+@property (weak, nonatomic) IBOutlet UINavigationItem *signOutButton;
 @property (strong, nonatomic) UINib *dealCellNib;
 @end
 
@@ -79,7 +81,15 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    NSLog(@"view did appear called=========================================");
+    _filteredDeals = [[NSMutableArray alloc] init];
+    [_dealSearchbar setShowsScopeBar:NO];
+    [_dealSearchbar sizeToFit];
+}
+
+- (void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(exitTheApp:) name:ExitDealFinder object:nil];
+
     [self.showMenuOutlet setTarget: self.revealViewController];
     [self.showMenuOutlet setAction: @selector( revealToggle: )];
     [self.navigationController.navigationBar addGestureRecognizer: self.revealViewController.panGestureRecognizer];
@@ -89,16 +99,11 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     [_locationManager setDesiredAccuracy:kCLLocationAccuracyBest];
     [_locationManager startUpdatingLocation];
 
-    _filteredDeals = [[NSMutableArray alloc] init];
-    [_dealSearchbar setShowsScopeBar:NO];
-    [_dealSearchbar sizeToFit];
-    
     UIRefreshControl *refreshControl = [[UIRefreshControl alloc] init];
     self.refreshControl = refreshControl;
     [self.refreshControl addTarget:self action:@selector(refreshControlCallback) forControlEvents:UIControlEventValueChanged];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sessionCreated) name:SessionReceivedNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sessionCreationFailed) name:ErrorRetrievingSessionNotification object:nil];
-    [self fetchDeals];
 }
 
 - (void) sessionCreated {
@@ -118,17 +123,40 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     [self fetchDeals];
 }
 
+- (void) viewDidDisappear:(BOOL)animated {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void) exitTheApp:(NSNotification*)notification {
+    NSLog(@"notification is %@", [[notification userInfo] objectForKey:@"Logout"]);
+    if (self.logoutOfApp != nil) {
+        self.logoutOfApp();
+    }
+}
 - (IBAction)signOutOfApp:(id)sender {
-    APUser *user = [APUser currentUser];
-    if(user.loggedInWithTwitter) {
-        [ApplicationDelegate logoutFromDealFinder];
-    } else if (user.loggedInWithFacebook){
+//    APUser *user = [APUser currentUser];
+//    NSLog(@"%@ -- current user login type for facebook is %d", user.objectId, user.loggedInWithFacebook);
+//    NSLog(@"%@ -- current user login type for twitter is %d", user.objectId, user.loggedInWithTwitter);
+    
+   BOOL twitterSignUp = [ApplicationDelegate isLoggedInFromTwitter];
+    if(twitterSignUp) {
+        UIStoryboard *storyBoardTemp = [UIStoryboard storyboardWithName:@"iPhone" bundle:nil];
+        __weak SlidingViewController *sld = (SlidingViewController*) [storyBoardTemp instantiateViewControllerWithIdentifier:@"SlidingViewController"];
+        [self presentViewController:sld animated:YES completion:nil];
+       // [ApplicationDelegate logoutFromDealFinder];
+    } else if (!twitterSignUp){
         if (self.settingsViewController == nil) {
             self.settingsViewController = [[FBUserSettingsViewController alloc] init];
             self.settingsViewController.delegate = self;
         }
         [self.navigationController pushViewController:self.settingsViewController animated:YES];
     }
+}
+
+#pragma mark - FBUserSettingDelegate methods
+
+- (void)loginViewControllerDidLogUserOut:(id)sender {
+    [self.navigationController popToRootViewControllerAnimated:NO];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -153,7 +181,6 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     } else {
         NSLog(@"table is %@", [tableView class]);
         deal = [_filteredDeals objectAtIndex:indexPath.row];
-        NSLog(@"found deal============== %@", [deal  description]);
     }
     
     
@@ -211,30 +238,32 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
                     title:@"Fetching Deals"
                     linedBackground:AJLinedBackgroundTypeAnimated
                     hideAfter:3.0f response:^{}];
-    
+    if (_panel)
+        [_panel hide];
+
     NSString *locationQuery = [APQuery queryStringForGeoCodeProperty:@"location" location:_currentLocation distance:kKilometers raduis:@50];
     NSString *query = [NSString stringWithFormat:@"%@&%@&query=%@",[APQuery queryStringForPageNumber:_pNum],[APQuery queryStringForPageSize:_pSize], locationQuery];
     [APObject searchObjectsWithSchemaName:@"deal"
-                          withQueryString:query
-                           successHandler:^(NSDictionary *dict){
-                               NSArray *dealsArray = [dict objectForKey:@"articles"];
-                               if (_deals == nil) {
-                                   _deals = [[NSMutableArray alloc] init];                                   
-                               } else {
-                                   [_deals removeAllObjects];
-                               }
-                               [dealsArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop){
-                                   NSDictionary *dealDictionary = obj;
-                                   Deal *deal = [[Deal alloc]init];
-                                   deal.objectId = [dealDictionary objectForKey:@"__id"];
-                                   deal.dealTitle = [dealDictionary objectForKey:@"title"];
-                                   deal.dealImageUrl = [dealDictionary objectForKey:@"photo"];
-                                   deal.dealStartDate = [dealDictionary objectForKey:@"startdate"];
-                                   deal.dealEndDate = [dealDictionary objectForKey:@"enddate"];
-                                   deal.dealDescription = [dealDictionary objectForKey:@"description"];
-                                   deal.dealLocation = [dealDictionary objectForKey:@"location"];
-                                   [_deals addObject:deal];
-                               }];
+                    withQueryString:query
+                    successHandler:^(NSDictionary *dict){
+                    NSArray *dealsArray = [dict objectForKey:@"articles"];
+                    if (_deals == nil) {
+                        _deals = [[NSMutableArray alloc] init];
+                    } else {
+                        [_deals removeAllObjects];
+                }
+                    [dealsArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop){
+                            NSDictionary *dealDictionary = obj;
+                            Deal *deal = [[Deal alloc]init];
+                            deal.objectId = [dealDictionary objectForKey:@"__id"];
+                            deal.dealTitle = [dealDictionary objectForKey:@"title"];
+                            deal.dealImageUrl = [dealDictionary objectForKey:@"photo"];
+                            deal.dealStartDate = [dealDictionary objectForKey:@"startdate"];
+                            deal.dealEndDate = [dealDictionary objectForKey:@"enddate"];
+                            deal.dealDescription = [dealDictionary objectForKey:@"description"];
+                            deal.dealLocation = [dealDictionary objectForKey:@"location"];
+                            [_deals addObject:deal];
+                        }];
                                
                                _filteredDeals = [NSMutableArray arrayWithCapacity:[_deals count]];
                                NSLog(@"filtered array is %d - %d", [_deals count], [_filteredDeals count]);
@@ -250,10 +279,10 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
                                    [self fetchDeals];
                                }
                                _panel = [AJNotificationView showNoticeInView:self.view
-                                                                        type:AJNotificationTypeGreen
-                                                                       title:@"Deals fetched"
-                                                             linedBackground:AJLinedBackgroundTypeDisabled
-                                                                   hideAfter:2.5f response:^{}];
+                                            type:AJNotificationTypeGreen
+                                            title:@"Deals fetched"
+                                            linedBackground:AJLinedBackgroundTypeDisabled
+                                            hideAfter:2.5f response:^{}];
                                
                            } failureHandler:^(APError *error) {
                                if (_panel) {
@@ -282,13 +311,8 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
 }
 - (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation {
     _currentLocation = newLocation;
+    [self fetchDeals];
     [_locationManager stopUpdatingLocation];
-}
-
-#pragma mark - FBUserSettingDelegate methods
-
-- (void)loginViewControllerDidLogUserOut:(id)sender {
-    [self.navigationController popToRootViewControllerAnimated:NO];
 }
 
 #pragma mark - UISearchDisplayController Delegate Methods
@@ -319,13 +343,6 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     [_filteredDeals removeAllObjects];
     NSPredicate *predicate = [NSPredicate predicateWithFormat:@"SELF.dealTitle contains[c] %@",searchText];
     NSArray *tempArray = [_deals filteredArrayUsingPredicate:predicate];
-    NSLog(@"%@ temp", tempArray);
-//    if(![scope isEqualToString:@"All"]) {
-//        // Further filter the array with the scope
-//        NSPredicate *scopePredicate = [NSPredicate predicateWithFormat:@"SELF.category contains[c] %@",scope];
-//        tempArray = [tempArray filteredArrayUsingPredicate:scopePredicate];
-//    }
-    
     _filteredDeals = [NSMutableArray arrayWithArray:tempArray];
 }
 @end

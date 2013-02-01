@@ -21,7 +21,7 @@
 @interface StoreListViewController () {
     int _pNum;
     int _pSize;
-    AJNotificationView *_panel;
+    __block AJNotificationView *_panel;
     UISearchDisplayController *searchDisplayController;
 }
 @property (strong, nonatomic) NSMutableArray *stores;

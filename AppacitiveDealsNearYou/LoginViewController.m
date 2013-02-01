@@ -11,9 +11,8 @@
 #import "AppDelegate.h"
 
 @interface LoginViewController () {
-    AJNotificationView *_panel;
+    __block AJNotificationView *_panel;
 }
-
 @end
 
 @implementation LoginViewController
@@ -32,16 +31,25 @@
 - (void) viewDidLoad {
     [super viewDidLoad];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(facebookSessionChangedNotification:) name:SCSessionStateChangedNotification object:nil];
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    NSString * token = [userDefaults  objectForKey:TwitterOAuthAccessTokenKey];
+    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(twitterOAuthTokenReceived:) name:TwitterAccessTokenKeyReceivedNotification object:nil];
 }
 
-- (void)viewDidDisappear:(BOOL)animated {
+- (void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];    
+}
+
+- (void) viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void) twitterOAuthTokenReceived:(NSNotification *) notification {
     NSString *twitterAccessToken = [[notification userInfo] objectForKey:@"twitterOAuthToken"];
     NSLog(@"twitter access token is %@", twitterAccessToken);
+    NSLog(@"login with twitter successful ??? %@", self.loginWithTwitterSuccessful);
     if (twitterAccessToken != nil && twitterAccessToken != @"" && self.loginWithTwitterSuccessful != nil) {
         self.loginWithTwitterSuccessful();
     } else {

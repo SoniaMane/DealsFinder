@@ -7,6 +7,7 @@
 //
 
 #import "MenuViewController.h"
+#import "LoginViewController.h"
 
 @implementation MenuViewController
 
@@ -28,7 +29,6 @@
             
             [rvc setFrontViewPosition: FrontViewPositionLeft animated: YES];
         };
-        NSLog(@"callled SSSWWWWWW==========");
     }
 }
 
@@ -58,7 +58,6 @@
         case 1:
             CellIdentifier = @"publish";
             break;
-            
     }
     
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier: CellIdentifier forIndexPath: indexPath];

@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-@interface DealsListViewController : UITableViewController <CLLocationManagerDelegate,UISearchBarDelegate, UISearchDisplayDelegate>
+typedef void (^LogoutOfApp) ();
 
+@interface DealsListViewController : UITableViewController <CLLocationManagerDelegate,UISearchBarDelegate, UISearchDisplayDelegate>
+@property (copy, nonatomic) LogoutOfApp logoutOfApp;
 @end

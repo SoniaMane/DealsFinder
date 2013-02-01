@@ -20,6 +20,7 @@ extern NSString *const SCSessionStateChangedNotification;
 extern NSString *const FacebookAccessTokenKey;
 extern NSString *const TwitterOAuthAccessTokenKey;
 extern NSString *const TwitterAccessTokenKeyReceivedNotification;
+extern NSString *const ExitDealFinder;
 
 @property (strong, nonatomic) UIWindow *window;
 @property (nonatomic, strong) ACAccountStore *accountStore;

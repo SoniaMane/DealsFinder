@@ -22,6 +22,7 @@
     NSString *_dealLocationCoord;
     CustomDatePicker *_customPicker;
     NSDate *_startDate;
+    __block AJNotificationView *_panel;
 }
 @property (strong, nonatomic) Store *store;
 @property (strong, nonatomic) CLGeocoder *geoCoder;
@@ -92,23 +93,29 @@
         [_customPicker setMinDate:_startDate];
         _customPicker.delegate = self;
     } else {
-        [AJNotificationView showNoticeInView:self.view
+        _panel = [AJNotificationView showNoticeInView:self.view
             type:AJNotificationTypeOrange
             title:@"Select start date first!"
             linedBackground:AJLinedBackgroundTypeAnimated
             hideAfter:5.5f response:^{}];
-
+        if (_panel) {
+            [_panel hide];
+        }
     }
         [self.view addSubview:_customPicker];
 }
 
 - (IBAction)doneWithDeal:(id)sender {
     if ([self isDealObjectValid]) {
-        [AJNotificationView showNoticeInView:self.view
+        _panel = [AJNotificationView showNoticeInView:self.view
             type:AJNotificationTypeBlue
             title:@"Saving deal"
             linedBackground:AJLinedBackgroundTypeAnimated
             hideAfter:10.5f response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
+
         dispatch_async(_saveDealObject, ^() {
             if ([self isDealObjectValid]) {
                 APObject *objectB = [APObject objectWithSchemaName:@"deal"];
@@ -135,26 +142,36 @@
                     APConnection *connection = [APConnection connectionWithRelationType:@"deals"];
                     [connection createConnectionWithObjectAId:endPointAId objectBId:endPointBId labelA:labelA labelB:labelB
                         successHandler:^(){
-                    dispatch_async(dispatch_get_main_queue(), ^() {                                                       [AJNotificationView showNoticeInView:self.view
+                    dispatch_async(dispatch_get_main_queue(), ^() {                                                       _panel = [AJNotificationView showNoticeInView:self.view
                             type:AJNotificationTypeGreen
                             title:@"Deal saved"
                             linedBackground:AJLinedBackgroundTypeAnimated
                             hideAfter:10.5f response:^{}];
+                        if (_panel) {
+                            [_panel hide];
+                        }
+
                         [[self navigationController] popViewControllerAnimated:YES];
                                 });
                         } failureHandler:^(APError *error){
-                            [AJNotificationView showNoticeInView:self.view
+                            _panel = [AJNotificationView showNoticeInView:self.view
                                 type:AJNotificationTypeRed
                                 title:@"Error in saving deal!"
                                 linedBackground:AJLinedBackgroundTypeAnimated
                                 hideAfter:10.5f response:^{}];
+                            if (_panel) {
+                                [_panel hide];
+                            }
                         }];
                 } failureHandler:^(APError *error){
-                    [AJNotificationView showNoticeInView:self.view
+                    _panel = [AJNotificationView showNoticeInView:self.view
                         type:AJNotificationTypeRed
                         title:@"Error in saving deal!"
                         linedBackground:AJLinedBackgroundTypeAnimated
                         hideAfter:10.5f response:^{}];
+                    if (_panel) {
+                        [_panel hide];
+                    }
                 }];
             }
         });
@@ -165,11 +182,14 @@
 
 - (void)locationManager:(CLLocationManager *)manager
        didFailWithError:(NSError *)error {
-    [AJNotificationView showNoticeInView:self.view
+    _panel = [AJNotificationView showNoticeInView:self.view
         type:AJNotificationTypeRed
         title:@"Location service unavailable !"
         linedBackground:AJLinedBackgroundTypeAnimated
         hideAfter:2.5f response:^{}];
+    if (_panel) {
+        [_panel hide];
+    }
 }
 
 - (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation {
@@ -188,11 +208,14 @@
             _dealLocationCoord = [NSString stringWithFormat:@"%@, %@",lat, lng];
             
         } else {
-            [AJNotificationView showNoticeInView:self.view
+            _panel = [AJNotificationView showNoticeInView:self.view
                 type:AJNotificationTypeRed
                 title:@"Error in fetching current location !"
                 linedBackground:AJLinedBackgroundTypeAnimated
                 hideAfter:2.5f response:^{}];
+            if (_panel) {
+                [_panel hide];
+            }
         }
     }];
 }
@@ -313,11 +336,14 @@
     }
 
     if (!isValid) {
-        [AJNotificationView showNoticeInView:self.view
+        _panel = [AJNotificationView showNoticeInView:self.view
             type:AJNotificationTypeRed
             title:@"Fill the missing fields!"
             linedBackground:AJLinedBackgroundTypeAnimated
             hideAfter:2.0f response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
     }
     return isValid;
 }

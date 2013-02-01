@@ -19,7 +19,7 @@
     NSString *_storeLocationCoord;
     NSString *_storeId;
     NSString *_storeLabel;
-    AJNotificationView *_panel;
+    __block AJNotificationView *_panel;
 }
 @property (strong, nonatomic) Store *store;
 @property (strong, nonatomic) CLGeocoder *geoCoder;
