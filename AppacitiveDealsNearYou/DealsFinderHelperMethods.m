@@ -10,18 +10,6 @@
 
 @implementation DealsFinderHelperMethods
 
-+ (NSString *) deserializeJsonDateStringToHumanReadableForm: (NSString *)jsonDateString {
-    if (jsonDateString == nil && jsonDateString.length == 0) {
-        return nil;
-    }
-    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSSSSSSS"];
-    NSDate *date = [dateFormatter dateFromString:jsonDateString];
-    
-    [dateFormatter setDateFormat:@"dd-MM-yy"];
-    return [dateFormatter stringFromDate:date];
-}
-
 + (CLLocation *) jsonLocationStringToLatLng: (NSString *) locationString {
     NSArray *latLngString = [locationString componentsSeparatedByString:@","];
     

@@ -8,6 +8,5 @@
 
 
 @interface DealsFinderHelperMethods : NSObject
-+ (NSString *) deserializeJsonDateStringToHumanReadableForm: (NSString *)jsonDateString;
 + (CLLocation *) jsonLocationStringToLatLng: (NSString *) locationString ;
 @end

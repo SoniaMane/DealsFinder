@@ -8,11 +8,10 @@
 
 #import "StoreListViewController.h"
 #import "Store.h"
-#import "StoreCell.h"
 #import "CreateStoreViewController.h"
 #import "CreateDealViewController.h"
 
-#define KPageSize 50
+#define KPageSize 10
 #define STORE_CELL_IMAGE 101
 #define STORE_CELL_NAME 201
 #define STORE_CELL_ADDRESS 301
@@ -23,6 +22,7 @@
     int _pSize;
     __block AJNotificationView *_panel;
     UISearchDisplayController *searchDisplayController;
+    dispatch_queue_t _imageQueue;
 }
 @property (strong, nonatomic) NSMutableArray *stores;
 @property (strong, nonatomic) NSMutableArray *filteredStores;
@@ -32,6 +32,7 @@
 @property (strong, nonatomic) IBOutlet UITableViewCell *storeCell;
 @property (strong, nonatomic) UINib *storeCellNib;
 @property (weak, nonatomic) IBOutlet UISearchBar *storeSearchBar;
+@property (nonatomic, strong) NSMutableDictionary *thumbnailsCache;
 
 @end
 
@@ -43,6 +44,7 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
     if(self) {
         self->_pSize = KPageSize;
         self->_pNum = 1;
+        _imageQueue = dispatch_queue_create("com.appacitive.AppacitiveDealsNearYou.imageQueue", NULL);
     }
     return self;
 }
@@ -107,22 +109,46 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
         store = [_filteredStores objectAtIndex:indexPath.row];
     }
     
-    
     UILabel *storeNameLabel = (UILabel *)[cell viewWithTag:STORE_CELL_NAME];
-    storeNameLabel.text = store.storeName;
-    
     UILabel *storeAddressLabel = (UILabel *)[cell viewWithTag:STORE_CELL_ADDRESS];
-    storeAddressLabel.text = store.storeAddress;
-    
     UILabel *storePhoneLabel = (UILabel *)[cell viewWithTag:STORE_CELL_PHONE_NUM];
-    storePhoneLabel.text = store.storePhone;
-    
     UIImageView *storeImageView = (UIImageView *)[cell viewWithTag:STORE_CELL_IMAGE];
+    cell.tag = [store.objectId integerValue];
+    
+    //NSString *thumbnailCacheKey = [NSString stringWithFormat:@"cache%d", indexPath.row];
+    [storeImageView setImage:[UIImage imageNamed:@"photo_not_available.png"]];
+    
+    dispatch_async(dispatch_get_main_queue(), ^(){
+        storeNameLabel.text = store.storeName;
+        storeAddressLabel.text = store.storeAddress;
+        storePhoneLabel.text = store.storePhone;
+    });
+    
+//    if (![self.thumbnailsCache objectForKey:thumbnailCacheKey]) {
+    if (![self.thumbnailsCache objectForKey: store.objectId]) {
+    
+        dispatch_async (_imageQueue, ^{
+            [APFile downloadFileWithName:store.storeImageUrl validUrlForTime:[NSNumber numberWithInt:10] successHandler:^(NSData *data){
 
-    if ([[store storeImageUrl] isEqual:nil] && [[store storeImageUrl] length] != 0) {
-        [APBlob downloadImageFromRemoteUrl:@"https://s3.grouponcdn.com/images/site_images/2943/3316/RackMultipart20130123-18719-19qc5x7_grid_4.jpg" successHandler:^(UIImage *image,NSURL *url ,BOOL isCached) {
-            [storeImageView setImage:image];
-        }];
+                UIImage *image = [UIImage imageWithData:data];
+//                [store setThumbnailDataForImage:image];
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (self.thumbnailsCache == nil) {
+                        self.thumbnailsCache = [NSMutableDictionary dictionary];
+                    }
+                    [self.thumbnailsCache setObject:data forKey:store.objectId];
+                    
+                    if (cell.tag == [store.objectId integerValue]) {
+                        [storeImageView setImage:image];
+                    }
+                });
+            } failureHandler:nil];
+        });
+    } else {
+        NSData *imageData = [self.thumbnailsCache objectForKey:store.objectId];
+        UIImage *image = [UIImage imageWithData:imageData];
+        [storeImageView setImage:image];
     }
     return cell;
 }
@@ -138,12 +164,56 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
     if (_panel) {
         [_panel hide];
     }
+    NSString *pageQuery = [NSString stringWithFormat:@"%@&%@",[APQuery queryStringForPageNumber:_pNum],[APQuery queryStringForPageSize:_pSize]];
+
+    [APObject searchObjectsWithSchemaName:@"store" withQueryString:pageQuery successHandler:^(NSDictionary *dict){
+        
+        NSArray *storesArray = [dict objectForKey:@"articles"];
+        _stores = [[NSMutableArray alloc] init];
+        [storesArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+            NSDictionary *storeDictionary = obj;
+            Store *store = [[Store alloc] init];
+            store.objectId = [storeDictionary objectForKey:@"__id"];
+            store.storeLabel = [storeDictionary objectForKey:@"__schematype"];
+            store.storeName = [storeDictionary objectForKey:@"name"];
+            store.storeAddress = [storeDictionary objectForKey:@"address"];
+            store.storePhone = [storeDictionary objectForKey:@"phone"];
+            store.storeImageUrl = [storeDictionary objectForKey:@"photo"];
+            [_stores addObject:store];
+            
+        }];
+        _filteredStores = [NSMutableArray arrayWithCapacity:[_stores count]];
+        [_storeTableView reloadData];
+        [self.refreshControl endRefreshing];
+        
+        NSDictionary *pagingInfo = [dict objectForKey:@"paginginfo"];
+        NSNumber *pageNum = [pagingInfo objectForKey:@"pagenumber"];
+        NSNumber *pageSize = [pagingInfo objectForKey:@"pagesize"];
+        NSNumber *toatalRecords = [pagingInfo objectForKey:@"totalrecords"];
+        
+        if ((pageNum.intValue * pageSize.intValue) <= toatalRecords.intValue) {
+            _pNum++;
+            [self fetchStores];
+        }
+        _panel = [AJNotificationView showNoticeInView:self.view
+                                                 type:AJNotificationTypeGreen
+                                                title:@"Stores fetched"
+                                      linedBackground:AJLinedBackgroundTypeDisabled
+                                            hideAfter:2.5f response:^{}];
+        if (_panel) {
+            [_panel hide];
+        }
+
+    } failureHandler:^(APError * error){
+        NSLog(@"error in fetching stores %@",[error description]);
+        [self.refreshControl endRefreshing];
+    }];
+    /*
+     
     APUser *user = [APUser currentUser];
     NSNumber *objectId = user.objectId;
-    NSString *userId = [NSString stringWithFormat:@"%lld",16134112148587524];
-   
     NSString *pageQuery = [NSString stringWithFormat:@"%@&%@",[APQuery queryStringForPageNumber:_pNum],[APQuery queryStringForPageSize:_pSize]];
-    NSString *query = [NSString stringWithFormat:@"articleId=%@&label=%@&%@", userId, @"store",pageQuery];
+    NSString *query = [NSString stringWithFormat:@"articleId=%@&label=%@&%@", objectId, @"store",pageQuery];
     [APConnection searchForConnectionsWithRelationType:@"owner" withQueryString:query successHandler:^(NSDictionary *result){
         NSArray *connectionsArray = [result objectForKey:@"connections"];
         NSMutableArray *endPointAArray = [[NSMutableArray alloc]init];
@@ -171,7 +241,9 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
                 [_panel hide];
             }
             NSArray *storesArray = [dict objectForKey:@"articles"];
-            _stores = [[NSMutableArray alloc] init];
+            if (_stores != nil) {
+                _stores = [[NSMutableArray alloc] init];
+            }
             [storesArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
                     NSDictionary *storeDictionary = obj;
                     Store *store = [[Store alloc] init];
@@ -182,11 +254,12 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
                     store.storePhone = [storeDictionary objectForKey:@"phone"];
                     store.storeImageUrl = [storeDictionary objectForKey:@"photo"];
                     [_stores addObject:store];
-                    [_storeTableView reloadData];
-                    [self.refreshControl endRefreshing];
-                    }];
+                }];
+     _filteredStores = [NSMutableArray arrayWithCapacity:[_stores count]];
+     [_storeTableView reloadData];
+     [self.refreshControl endRefreshing];
+
             NSDictionary *pagingInfo = [result objectForKey:@"paginginfo"];
-            NSLog(@"paging info %@", pagingInfo);
             NSNumber *pageNum = [pagingInfo objectForKey:@"pagenumber"];
             NSNumber *pageSize = [pagingInfo objectForKey:@"pagesize"];
             NSNumber *toatalRecords = [pagingInfo objectForKey:@"totalrecords"];
@@ -208,6 +281,8 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
 
         [self.refreshControl endRefreshing];
     }];
+     
+     */
 }
 
 #pragma store Datasource Protocol
@@ -236,7 +311,6 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
     return YES;
 }
 
-
 - (BOOL)searchDisplayController:(UISearchDisplayController *)controller shouldReloadTableForSearchScope:(NSInteger)searchOption {
     [self filterContentForSearchText:[self.searchDisplayController.searchBar text] scope:
      [[self.searchDisplayController.searchBar scopeButtonTitles] objectAtIndex:searchOption]];
@@ -254,8 +328,6 @@ static NSString *StoreCellIdentifier = @"StoreCellIdentifier";
     [_filteredStores removeAllObjects];
     NSPredicate *predicate = [NSPredicate predicateWithFormat:@"SELF.storeName contains[c] %@",searchText];
     NSArray *tempArray = [_stores filteredArrayUsingPredicate:predicate];
-    NSLog(@"%@ temp", tempArray);
     _filteredStores = [NSMutableArray arrayWithArray:tempArray];
 }
-
 @end

@@ -14,13 +14,14 @@
 
 #define ApplicationDelegate ((AppDelegate *)[UIApplication sharedApplication].delegate)
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate, UIActionSheetDelegate>
+@interface AppDelegate : UIResponder <UIApplicationDelegate, UIActionSheetDelegate> {
+    __block AJNotificationView *_panel;
+}
 
 extern NSString *const SCSessionStateChangedNotification;
 extern NSString *const FacebookAccessTokenKey;
 extern NSString *const TwitterOAuthAccessTokenKey;
 extern NSString *const TwitterAccessTokenKeyReceivedNotification;
-extern NSString *const ExitDealFinder;
 
 @property (strong, nonatomic) UIWindow *window;
 @property (nonatomic, strong) ACAccountStore *accountStore;
@@ -31,5 +32,4 @@ extern NSString *const ExitDealFinder;
 @property (nonatomic, assign) BOOL isLoggedInFromTwitter;
 - (void) openSession;
 - (void) getTwitterOAuthTokenUsingReverseOAuth;
-- (void) logoutFromDealFinder;
 @end

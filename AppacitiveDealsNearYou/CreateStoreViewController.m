@@ -20,6 +20,8 @@
     NSString *_storeId;
     NSString *_storeLabel;
     __block AJNotificationView *_panel;
+    UIImage *_cameraImageToBeUploaded;
+    NSString *_uniqueAlphaNumericName;
 }
 @property (strong, nonatomic) Store *store;
 @property (strong, nonatomic) CLGeocoder *geoCoder;
@@ -109,10 +111,12 @@
     CFUUIDRef newUniqueID = CFUUIDCreate(kCFAllocatorDefault);
     CFStringRef newUniqueIDString = CFUUIDCreateString(kCFAllocatorDefault, newUniqueID);
     NSString *key = (__bridge NSString *)newUniqueIDString;
+    _uniqueAlphaNumericName = [key stringByReplacingOccurrencesOfString:@"-" withString:@""];
     [_store setStoreImageKey:key];
     [[StoreImage sharedInstance] setImage:image forKey:key];
     CFRelease(newUniqueIDString);
     CFRelease(newUniqueID);
+    _cameraImageToBeUploaded = image;
     [_clickPhotoForStoreOutlet setImage:image forState:UIControlStateNormal];
     [self dismissViewControllerAnimated:YES completion:nil];
 }
@@ -126,6 +130,7 @@
         [_storePhoneNumber becomeFirstResponder];
     } else if (textField == _storePhoneNumber) {
         [_storePhoneNumber resignFirstResponder];
+        [_scrollView setContentOffset:CGPointMake(0, 50) animated:YES];
     }
     return YES;
 }
@@ -139,11 +144,11 @@
 
 - (void) textFieldDidEndEditing:(UITextField *)textField {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [_scrollView setContentOffset:CGPointMake(0, 0) animated:YES];
+    [_scrollView setContentOffset:CGPointMake(0, 50) animated:YES];
 }
 
 - (void)keyboardWillHide:(NSNotification*) notification {
-    [_scrollView setContentOffset:CGPointMake(0, 0) animated:YES];
+    [_scrollView setContentOffset:CGPointMake(0, 50) animated:YES];
 }
 
 - (void) doneNumPadButton:(id) sender {
@@ -152,11 +157,14 @@
 
 - (void)locationManager:(CLLocationManager *)manager
        didFailWithError:(NSError *)error {
-    [AJNotificationView showNoticeInView:self.view
+   _panel = [AJNotificationView showNoticeInView:self.view
         type:AJNotificationTypeRed
         title:@"Location service unavailable !"
         linedBackground:AJLinedBackgroundTypeAnimated
         hideAfter:2.5f response:^{}];
+    if (_panel) {
+        [_panel hide];
+    }
 }
 - (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation {
     CLLocation *currentLocation = newLocation;
@@ -174,11 +182,14 @@
             NSString *lng = [[NSString alloc] initWithFormat:@"%g", newLocation.coordinate.longitude];
             _storeLocationCoord = [NSString stringWithFormat:@"%@, %@",lat, lng];
         } else {
-            [AJNotificationView showNoticeInView:self.view
+           _panel = [AJNotificationView showNoticeInView:self.view
                 type:AJNotificationTypeRed
                 title:[NSString stringWithFormat:@"%@",[error debugDescription]]
                 linedBackground:AJLinedBackgroundTypeAnimated
                 hideAfter:2.5f response:^{}];
+            if (_panel) {
+                [_panel hide];
+            }
         }
     }];
 }
@@ -212,69 +223,89 @@
 }
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     if ([[segue identifier] isEqualToString:@"CreateDealSegue"] &&  [self isStoreObjectValid]) {
-        [AJNotificationView showNoticeInView:self.view
-            type:AJNotificationTypeBlue
-            title:@"Saving store"
-            linedBackground:AJLinedBackgroundTypeAnimated
-            hideAfter:2.5f response:^{}];
-        dispatch_async(_saveStoreObject, ^(){
-            if (self.isStoreObjectValid) {
-                _store = [[Store alloc] init];
-                _store.storeName = _storeName.text;
-                _store.storeAddress = _storeAddress.text;
-                _store.storePhone = _storePhoneNumber.text;
-                _store.storeLocation = _storeLocationCoord;
-                
-            APObject *storeObject = [APObject objectWithSchemaName:@"store"];
-                [storeObject addPropertyWithKey:@"name" value:_store.storeName];
-                [storeObject addPropertyWithKey:@"address" value:_store.storeAddress];
-                [storeObject addPropertyWithKey:@"location" value:_store.storeLocation];
-                //      [object addPropertyWithKey:@"photo" value:_store.storeImageFilename];
-                [storeObject addPropertyWithKey:@"phone" value:_store.storePhone];
-                
-                [storeObject saveObjectWithSuccessHandler:^(NSDictionary *dict) {
-                    
-                    NSDictionary *storedict = dict[@"article"];
-                    _store.objectId = [storedict objectForKey:@"__id"];
-                    _store.storeLabel = [storedict objectForKey:@"__schematype"];
-                    
-                /**
-                 Here we need to create an connection of relation type "owner"
-                 and so as to fetch stores owned by this user only.
-                */
-            APConnection *connectionOwner = [APConnection connectionWithRelationType:@"owner"];
-            APUser *user = [APUser currentUser];
-                    NSLog(@"%@", user.objectId);
-                    NSNumber *userId = [[NSNumber alloc] initWithLongLong:16134112148587524];
-            [connectionOwner createConnectionWithObjectAId:userId objectBId:storeObject.objectId labelA:@"user" labelB:@"store" successHandler:^(){
-                        
-                dispatch_async(dispatch_get_main_queue(), ^(){
-                    [delegate notifyStoreDatasourceChanged:_store];
-                    CreateDealViewController *createDealViewController = [segue destinationViewController];
-                    [createDealViewController setEndPointA:_store];
-                    [AJNotificationView showNoticeInView:self.view
-                        type:AJNotificationTypeGreen
-                        title:@"Store saved"
-                        linedBackground:AJLinedBackgroundTypeAnimated
-                        hideAfter:2.5f response:^{}];
-                    });
-
-                    } failureHandler:^(APError *error){
-                        [AJNotificationView showNoticeInView:self.view
-                            type:AJNotificationTypeRed
-                            title:@"Error in saving store!"
+        
+        NSData *data = UIImagePNGRepresentation(_cameraImageToBeUploaded);
+       
+        NSLog(@"store====%@",_uniqueAlphaNumericName);
+        [APFile uploadFileWithName:_uniqueAlphaNumericName data:data validUrlForTime:[NSNumber numberWithInt:10] contentType:@"image/png" successHandler:^(NSDictionary *result){
+            _panel = [AJNotificationView showNoticeInView:self.view
+                            type:AJNotificationTypeBlue
+                            title:@"Saving store"
                             linedBackground:AJLinedBackgroundTypeAnimated
                             hideAfter:2.5f response:^{}];
+            if (_panel) {
+                [_panel hide];
+            }
+
+            NSLog(@"image upload data is %@", result);
+            NSString *fileName = [result objectForKey:@"id"];
+            NSLog(@"The id is %@", fileName);
+            
+            dispatch_async(_saveStoreObject, ^(){
+                if (self.isStoreObjectValid) {
+                    _store = [[Store alloc] init];
+                    _store.storeName = _storeName.text;
+                    _store.storeAddress = _storeAddress.text;
+                    _store.storePhone = _storePhoneNumber.text;
+                    _store.storeLocation = _storeLocationCoord;
+                    
+                    APObject *storeObject = [APObject objectWithSchemaName:@"store"];
+                    [storeObject addPropertyWithKey:@"name" value:_store.storeName];
+                    [storeObject addPropertyWithKey:@"address" value:_store.storeAddress];
+                    [storeObject addPropertyWithKey:@"location" value:_store.storeLocation];
+                    [storeObject addPropertyWithKey:@"photo" value:fileName];
+                    [storeObject addPropertyWithKey:@"phone" value:_store.storePhone];
+                    
+                    [storeObject saveObjectWithSuccessHandler:^(NSDictionary *dict) {
+                        
+                        NSDictionary *storedict = dict[@"article"];
+                        _store.objectId = [storedict objectForKey:@"__id"];
+                        _store.storeLabel = [storedict objectForKey:@"__schematype"];
+                        APConnection *connectionOwner = [APConnection connectionWithRelationType:@"owner"];
+                        APUser *user = [APUser currentUser];
+                        NSLog(@"%@", user.objectId);
+                        [connectionOwner createConnectionWithObjectAId:user.objectId objectBId:storeObject.objectId labelA:@"user" labelB:@"store" successHandler:^(){
+                            
+                            dispatch_async(dispatch_get_main_queue(), ^(){
+                                [delegate notifyStoreDatasourceChanged:_store];
+                                CreateDealViewController *createDealViewController = [segue destinationViewController];
+                                [createDealViewController setEndPointA:_store];
+                                _panel = [AJNotificationView showNoticeInView:self.view
+                                                                         type:AJNotificationTypeGreen
+                                                                        title:@"Store saved"
+                                                              linedBackground:AJLinedBackgroundTypeAnimated
+                                                                    hideAfter:2.5f response:^{}];
+                            });
+                            if (_panel) {
+                                [_panel hide];
+                            }
+                            
+                        } failureHandler:^(APError *error){
+                            _panel = [AJNotificationView showNoticeInView:self.view
+                                                                     type:AJNotificationTypeRed
+                                                                    title:@"Error in saving store!"
+                                                          linedBackground:AJLinedBackgroundTypeAnimated
+                                                                hideAfter:2.5f response:^{}];
+                            if (_panel) {
+                                [_panel hide];
+                            }
+                        }];
+                    } failureHandler:^(APError *error){
+                        _panel = [AJNotificationView showNoticeInView:self.view
+                                                                 type:AJNotificationTypeRed
+                                                                title:@"Error in saving store!"
+                                                      linedBackground:AJLinedBackgroundTypeAnimated
+                                                            hideAfter:2.5f response:^{}];
+                        if (_panel) {
+                            [_panel hide];
+                        }
                     }];
-                } failureHandler:^(APError *error){
-                    [AJNotificationView showNoticeInView:self.view
-                        type:AJNotificationTypeRed
-                        title:@"Error in saving store!"
-                        linedBackground:AJLinedBackgroundTypeAnimated
-                        hideAfter:2.5f response:^{}];
-                }];
-            } //end of if
-        });//end of dispatch async
+                } //end of if
+            });//end of dispatch asyn
+        }
+        failureHandler:^(APError *error){
+            NSLog(@"upload %@", [error description]);
+        }];
     }
 }
 

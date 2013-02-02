@@ -23,6 +23,8 @@
     CustomDatePicker *_customPicker;
     NSDate *_startDate;
     __block AJNotificationView *_panel;
+    UIImage *_cameraImageToBeUploaded;
+    NSString *_uniqueAlphaNumericName;
 }
 @property (strong, nonatomic) Store *store;
 @property (strong, nonatomic) CLGeocoder *geoCoder;
@@ -51,9 +53,9 @@
 - (void) viewWillAppear:(BOOL)animated {
     _saveDealObject = dispatch_queue_create("com.appacitive.saveDealObject", DISPATCH_QUEUE_SERIAL);
     [[NSNotificationCenter defaultCenter] addObserver:self
-        selector:@selector(keyboardWillHide:)
-        name:UIKeyboardWillHideNotification
-        object:self.view.window];
+                                             selector:@selector(keyboardWillHide:)
+                                                 name:UIKeyboardWillHideNotification
+                                               object:self.view.window];
 }
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -80,7 +82,8 @@
 }
 
 - (IBAction)getDealStartDate:(id)sender {
-    [_scrollView setContentOffset:CGPointMake(0, _dealNameText.frame.origin.y) animated:YES];    
+    [_dealDescriptionText resignFirstResponder];
+    [_scrollView setContentOffset:CGPointMake(0, _dealNameText.frame.origin.y) animated:YES];
     _customPicker = [[CustomDatePicker alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 420) andSender:sender];
     _customPicker.delegate = self;
     [self.view addSubview:_customPicker];
@@ -88,94 +91,109 @@
 
 - (IBAction)getDealEndDate:(id)sender {
     if (_startDate != nil) {
+        [_dealDescriptionText resignFirstResponder];
         [_scrollView setContentOffset:CGPointMake(0, _dealNameText.frame.origin.y) animated:YES];
         _customPicker = [[CustomDatePicker alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 420) andSender:sender];
         [_customPicker setMinDate:_startDate];
         _customPicker.delegate = self;
     } else {
         _panel = [AJNotificationView showNoticeInView:self.view
-            type:AJNotificationTypeOrange
-            title:@"Select start date first!"
-            linedBackground:AJLinedBackgroundTypeAnimated
-            hideAfter:5.5f response:^{}];
+                    type:AJNotificationTypeOrange
+                    title:@"Select start date first!"
+                                      linedBackground:AJLinedBackgroundTypeAnimated
+                                            hideAfter:5.5f response:^{}];
         if (_panel) {
             [_panel hide];
         }
     }
-        [self.view addSubview:_customPicker];
+    [self.view addSubview:_customPicker];
 }
 
 - (IBAction)doneWithDeal:(id)sender {
-    if ([self isDealObjectValid]) {
-        _panel = [AJNotificationView showNoticeInView:self.view
-            type:AJNotificationTypeBlue
-            title:@"Saving deal"
-            linedBackground:AJLinedBackgroundTypeAnimated
-            hideAfter:10.5f response:^{}];
-        if (_panel) {
-            [_panel hide];
-        }
-
-        dispatch_async(_saveDealObject, ^() {
-            if ([self isDealObjectValid]) {
-                APObject *objectB = [APObject objectWithSchemaName:@"deal"];
-                [objectB addPropertyWithKey:@"title" value:_dealNameText.text];
-                // [objectB addPropertyWithKey:@"photo" value:_imageCaptured];
-                [objectB addPropertyWithKey:@"startdate" value:_startDateString];
-                [objectB addPropertyWithKey:@"enddate" value:_endDateString];
-                [objectB addPropertyWithKey:@"description" value:_dealDescriptionText.text];
-                [objectB addPropertyWithKey:@"location" value:_dealLocationCoord];
-                
-                [objectB saveObjectWithSuccessHandler:^(NSDictionary *result){
-                    NSDictionary *dealDictionary = [result objectForKey:@"article"];
-                    NSString *dealBId = [dealDictionary objectForKey:@"__id"];
-                    NSString *dealBLabel = [dealDictionary objectForKey:@"__schematype"];
-                    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
-                    [formatter setNumberStyle:NSNumberFormatterNoStyle];
-                    NSNumber *endPointBId = [formatter numberFromString:dealBId];
-                    NSString *labelB = dealBLabel;
+    
+    NSData *data = UIImagePNGRepresentation(_cameraImageToBeUploaded);
+    NSString *imageId = _store.objectId;
+    NSString *uniqueImageName = [imageId stringByAppendingString:_uniqueAlphaNumericName];
+    NSLog(@"deal ====%@",uniqueImageName);
+    [APFile uploadFileWithName:_uniqueAlphaNumericName data:data validUrlForTime:[NSNumber numberWithInt:10] contentType:@"image/png" successHandler:^(NSDictionary *result){
+        NSLog(@"image upload data is %@", result);
+        NSString *fileName = [result objectForKey:@"id"];
+        NSLog(@"The id is %@", fileName);
+        
+        if ([self isDealObjectValid]) {
+            _panel = [AJNotificationView showNoticeInView:self.view
+                        type:AJNotificationTypeBlue
+                        title:@"Saving deal"
+                        linedBackground:AJLinedBackgroundTypeAnimated
+                        hideAfter:10.5f response:^{}];
+            if (_panel) {
+                [_panel hide];
+            }
+            
+            dispatch_async(_saveDealObject, ^() {
+                if ([self isDealObjectValid]) {
+                    APObject *objectB = [APObject objectWithSchemaName:@"deal"];
+                    [objectB addPropertyWithKey:@"title" value:_dealNameText.text];
+                    [objectB addPropertyWithKey:@"photo" value:fileName];
+                    [objectB addPropertyWithKey:@"startdate" value:_startDateString];
+                    [objectB addPropertyWithKey:@"enddate" value:_endDateString];
+                    [objectB addPropertyWithKey:@"description" value:_dealDescriptionText.text];
+                    [objectB addPropertyWithKey:@"location" value:_dealLocationCoord];
                     
-                    formatter = [[NSNumberFormatter alloc] init];
-                    [formatter setNumberStyle:NSNumberFormatterNoStyle];
-                    NSNumber *endPointAId = [formatter numberFromString:_store.objectId];
-                    NSString *labelA = _store.storeLabel;
-                    APConnection *connection = [APConnection connectionWithRelationType:@"deals"];
-                    [connection createConnectionWithObjectAId:endPointAId objectBId:endPointBId labelA:labelA labelB:labelB
-                        successHandler:^(){
-                    dispatch_async(dispatch_get_main_queue(), ^() {                                                       _panel = [AJNotificationView showNoticeInView:self.view
-                            type:AJNotificationTypeGreen
-                            title:@"Deal saved"
-                            linedBackground:AJLinedBackgroundTypeAnimated
-                            hideAfter:10.5f response:^{}];
+                    [objectB saveObjectWithSuccessHandler:^(NSDictionary *result){
+                        NSDictionary *dealDictionary = [result objectForKey:@"article"];
+                        NSString *dealBId = [dealDictionary objectForKey:@"__id"];
+                        NSString *dealBLabel = [dealDictionary objectForKey:@"__schematype"];
+                        NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+                        [formatter setNumberStyle:NSNumberFormatterNoStyle];
+                        NSNumber *endPointBId = [formatter numberFromString:dealBId];
+                        NSString *labelB = dealBLabel;
+                        
+                        formatter = [[NSNumberFormatter alloc] init];
+                        [formatter setNumberStyle:NSNumberFormatterNoStyle];
+                        NSNumber *endPointAId = [formatter numberFromString:_store.objectId];
+                        NSString *labelA = _store.storeLabel;
+                        APConnection *connection = [APConnection connectionWithRelationType:@"deals"];
+                        [connection createConnectionWithObjectAId:endPointAId objectBId:endPointBId labelA:labelA labelB:labelB
+                                successHandler:^(){
+                                dispatch_async(dispatch_get_main_queue(), ^() {                                                      _panel = [AJNotificationView showNoticeInView:self.view
+                                                                                                                                                                                type:AJNotificationTypeGreen
+                                                                                                                                                                                                title:@"Deal saved"
+                                                                                                                                                                                        linedBackground:AJLinedBackgroundTypeAnimated
+                                                                                                                                                                                                 hideAfter:10.5f response:^{}];
+                                                           if (_panel) {
+                                                               [_panel hide];
+                                                           }
+                                                           
+                                                           [[self navigationController] popToRootViewControllerAnimated:YES];
+                                                       });
+                                                   } failureHandler:^(APError *error){
+                                                       _panel = [AJNotificationView showNoticeInView:self.view
+                                                                                                type:AJNotificationTypeRed
+                                                                                               title:@"Error in saving deal!"
+                                                                                     linedBackground:AJLinedBackgroundTypeAnimated
+                                                                                           hideAfter:10.5f response:^{}];
+                                                       if (_panel) {
+                                                           [_panel hide];
+                                                       }
+                                                   }];
+                    } failureHandler:^(APError *error){
+                        _panel = [AJNotificationView showNoticeInView:self.view
+                                                                 type:AJNotificationTypeRed
+                                                                title:@"Error in saving deal!"
+                                                      linedBackground:AJLinedBackgroundTypeAnimated
+                                                            hideAfter:10.5f response:^{}];
                         if (_panel) {
                             [_panel hide];
                         }
-
-                        [[self navigationController] popViewControllerAnimated:YES];
-                                });
-                        } failureHandler:^(APError *error){
-                            _panel = [AJNotificationView showNoticeInView:self.view
-                                type:AJNotificationTypeRed
-                                title:@"Error in saving deal!"
-                                linedBackground:AJLinedBackgroundTypeAnimated
-                                hideAfter:10.5f response:^{}];
-                            if (_panel) {
-                                [_panel hide];
-                            }
-                        }];
-                } failureHandler:^(APError *error){
-                    _panel = [AJNotificationView showNoticeInView:self.view
-                        type:AJNotificationTypeRed
-                        title:@"Error in saving deal!"
-                        linedBackground:AJLinedBackgroundTypeAnimated
-                        hideAfter:10.5f response:^{}];
-                    if (_panel) {
-                        [_panel hide];
-                    }
-                }];
-            }
-        });
-    }
+                    }];
+                }
+            });
+        }
+    } failureHandler:^(APError *error){
+        NSLog(@"upload %@", [error description]);
+    }];
+    
 }
 
 #pragma mark - location manager methods
@@ -183,10 +201,10 @@
 - (void)locationManager:(CLLocationManager *)manager
        didFailWithError:(NSError *)error {
     _panel = [AJNotificationView showNoticeInView:self.view
-        type:AJNotificationTypeRed
-        title:@"Location service unavailable !"
-        linedBackground:AJLinedBackgroundTypeAnimated
-        hideAfter:2.5f response:^{}];
+                                             type:AJNotificationTypeRed
+                                            title:@"Location service unavailable !"
+                                  linedBackground:AJLinedBackgroundTypeAnimated
+                                        hideAfter:2.5f response:^{}];
     if (_panel) {
         [_panel hide];
     }
@@ -209,10 +227,10 @@
             
         } else {
             _panel = [AJNotificationView showNoticeInView:self.view
-                type:AJNotificationTypeRed
-                title:@"Error in fetching current location !"
-                linedBackground:AJLinedBackgroundTypeAnimated
-                hideAfter:2.5f response:^{}];
+                                                     type:AJNotificationTypeRed
+                                                    title:@"Error in fetching current location !"
+                                          linedBackground:AJLinedBackgroundTypeAnimated
+                                                hideAfter:2.5f response:^{}];
             if (_panel) {
                 [_panel hide];
             }
@@ -228,10 +246,13 @@
     CFUUIDRef newUniqueID = CFUUIDCreate(kCFAllocatorDefault);
     CFStringRef newUniqueIDString = CFUUIDCreateString(kCFAllocatorDefault, newUniqueID);
     NSString *key = (__bridge NSString *)newUniqueIDString;
+    _uniqueAlphaNumericName = [key stringByReplacingOccurrencesOfString:@"-" withString:@""];
+    NSLog(@"Unique name CFUUID %@",_uniqueAlphaNumericName);
     [_deal setDealImageKey:key];
     [[StoreImage sharedInstance] setImage:image forKey:key];
     CFRelease(newUniqueIDString);
     CFRelease(newUniqueID);
+    _cameraImageToBeUploaded = image;
     [_clickDealOutlet setBackgroundImage: image forState:UIControlStateNormal];
     [self dismissViewControllerAnimated:YES completion:nil];
 }
@@ -264,7 +285,7 @@
 #pragma mark Date change listener methods
 
 - (void) onCancelButtonPressed {
-    [_scrollView setContentOffset:CGPointMake(0, self.view.frame.origin.y + _clickDealOutlet.frame.size.width/2) animated:YES];
+    [_scrollView setContentOffset:CGPointMake(0, 50) animated:YES];
     [_customPicker removeFromSuperview];
 }
 
@@ -287,7 +308,7 @@
         [_getEndDateOutlet setTitle:displayDate forState:UIControlStateNormal];
     }
     
-    [_scrollView setContentOffset:CGPointMake(0, self.view.frame.origin.y + _clickDealOutlet.frame.size.width/2) animated:YES];
+    [_scrollView setContentOffset:CGPointMake(0, 50) animated:YES];
     [_customPicker removeFromSuperview];
 }
 
@@ -334,13 +355,13 @@
     } else {
         _getEndDateOutlet.layer.borderColor = clearColor;
     }
-
+    
     if (!isValid) {
         _panel = [AJNotificationView showNoticeInView:self.view
-            type:AJNotificationTypeRed
-            title:@"Fill the missing fields!"
-            linedBackground:AJLinedBackgroundTypeAnimated
-            hideAfter:2.0f response:^{}];
+                                                 type:AJNotificationTypeRed
+                                                title:@"Fill the missing fields!"
+                                      linedBackground:AJLinedBackgroundTypeAnimated
+                                            hideAfter:2.0f response:^{}];
         if (_panel) {
             [_panel hide];
         }

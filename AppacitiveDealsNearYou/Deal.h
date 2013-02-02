@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-@interface Deal : NSObject
+@interface Deal : NSObject <NSCoding>
 @property (strong, nonatomic) NSNumber *objectId;
 @property (strong, nonatomic) NSString *dealTitle;
 @property (strong, nonatomic) NSString *dealImageUrl;
@@ -17,4 +17,8 @@
 @property (strong, nonatomic) NSString *dealLocation;
 @property (copy, nonatomic) NSString *dealImageKey;
 
+@property (strong, nonatomic) UIImage *dealImage;
+@property (strong, nonatomic) UIImage *thumbnail;
+@property (strong, nonatomic) NSData *thumbnailData;
+- (void) setThumbnailDataForImage:(UIImage *)image;
 @end

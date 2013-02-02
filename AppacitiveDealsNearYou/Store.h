@@ -17,4 +17,8 @@
 @property (strong, nonatomic) NSString *storeLocation;
 
 @property (copy, nonatomic) NSString *storeImageKey;
+
+@property (strong, nonatomic) UIImage *thumbnail;
+@property (strong, nonatomic) NSData *thumbnailData;
+- (void) setThumbnailDataForImage:(UIImage *)image;
 @end

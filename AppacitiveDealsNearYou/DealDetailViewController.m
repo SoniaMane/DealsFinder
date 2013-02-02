@@ -7,11 +7,9 @@
 //
 
 #import "DealDetailViewController.h"
-#import <JSNotifier.h>
 
 @interface DealDetailViewController () {
     int _voteCount;
-    JSNotifier *_notifier;
     __block AJNotificationView *_panel;
 }
 @property (weak, nonatomic) IBOutlet UIImageView *selectedDealImage;
@@ -24,6 +22,12 @@
 
 - (void) setDeal:(Deal *)deal {
     _deal = deal;
+    [APFile downloadFileWithName:_deal.dealImageUrl validUrlForTime:[NSNumber numberWithInt:43200] successHandler:^(NSData *data){
+    UIImage *image = [UIImage imageWithData:data];
+        [_selectedDealImage setImage:image];
+    } failureHandler:^(APError *error){
+    
+    }];
     NSString *query = [NSString stringWithFormat:@"articleId=%@&label=%@", [deal.objectId description],@"user"];
     
     [APConnection
@@ -52,17 +56,17 @@
 - (IBAction)upvoteButtonPressed:(id)sender {
     
     _panel = [AJNotificationView showNoticeInView:self.view
-                                             type:AJNotificationTypeBlue
-                                            title:@"Updating Vote Count..!"
-                                  linedBackground:AJLinedBackgroundTypeAnimated
-                                        hideAfter:5.5f response:^{}];
+                type:AJNotificationTypeBlue
+                title:@"Updating Vote Count..!"
+                linedBackground:AJLinedBackgroundTypeAnimated
+                hideAfter:7.5f response:^{}];
     if (_panel)
         [_panel hide];
     
     [_upvoteButton setEnabled:NO];
 
     APUser *currentUser = [APUser currentUser];
-
+    NSLog(@" user object id is %@", currentUser.objectId);
     APConnection *connection = [APConnection connectionWithRelationType:@"vote"];
     [connection createConnectionWithObjectAId:currentUser.objectId
                                     objectBId:self.deal.objectId
@@ -79,7 +83,7 @@
                                                 type:AJNotificationTypeGreen
                                                 title:@"Vote count updated!"
                                                 linedBackground:AJLinedBackgroundTypeAnimated
-                                                hideAfter:5.5f response:^{}];
+                                                hideAfter:7.5f response:^{}];
                                    if (_panel)
                                        [_panel hide];
 
@@ -91,7 +95,7 @@
                                                     type:AJNotificationTypeRed
                                                     title:@"You have already upvoted this deal."
                                                     linedBackground:AJLinedBackgroundTypeAnimated
-                                                    hideAfter:5.5f response:^{}];
+                                                    hideAfter:20.5f response:^{}];
                                        if (_panel)
                                            [_panel hide];
 
@@ -102,7 +106,7 @@
                                                     type:AJNotificationTypeRed
                                                     title:@"Error while updating vote count!"
                                                     linedBackground:AJLinedBackgroundTypeAnimated
-                                                    hideAfter:5.5f response:^{}];
+                                                    hideAfter:7.5f response:^{}];
                                        if (_panel)
                                            [_panel hide];
                                    }

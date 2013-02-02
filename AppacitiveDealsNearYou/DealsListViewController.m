@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Appacitive. All rights reserved.
 //
 
-#define KPageSize 50
+#define KPageSize 10
 #define DEAL_CELL_IMAGE 100
 #define DEAL_CELL_TITLE 200
 #define DEAL_CELL_DESC 300
@@ -15,20 +15,12 @@
 #define DEAL_CELL_MILES_AWAY 600
 
 #import "DealsListViewController.h"
-#import "DealCell.h"
 #import "Deal.h"
 #import "DealDetailViewController.h"
 #import "DealsFinderHelperMethods.h"
 #import "AppDelegate.h"
-#import <Accounts/Accounts.h>
-#import <Twitter/Twitter.h>
-#import "OAuth+Additions.h"
-#import "TWAPIManager.h"
-#import "TWSignedRequest.h"
-#import "LoginViewController.h"
-#import "SlidingViewController.h"
 
-@interface DealsListViewController ()<FBUserSettingsDelegate> {
+@interface DealsListViewController () {
     int _pNum;
     int _pSize;
     CLLocationManager *_locationManager;
@@ -36,22 +28,20 @@
     CLLocation *_currentLocation;
     __block AJNotificationView *_panel;
     UISearchDisplayController *searchDisplayController;
+    dispatch_queue_t _imageQueue;
 }
 
-@property (strong, nonatomic) FBUserSettingsViewController *settingsViewController;
 @property (strong, nonatomic) NSMutableArray *deals;
 @property (strong, nonatomic) NSMutableArray *filteredDeals;
-
-@property (nonatomic, strong) ACAccountStore *accountStore;
-@property (nonatomic, strong) TWAPIManager *apiManager;
-@property (nonatomic, strong) NSArray *accounts;
-- (IBAction)signOutOfApp:(id)sender;
 @property (weak, nonatomic) IBOutlet UISearchBar *dealSearchbar;
 @property (strong, nonatomic) IBOutlet UITableViewCell *dealCell;
 @property (weak, nonatomic) IBOutlet UIBarButtonItem *showMenuOutlet;
 
 @property (weak, nonatomic) IBOutlet UINavigationItem *signOutButton;
 @property (strong, nonatomic) UINib *dealCellNib;
+
+@property (nonatomic, strong) NSMutableDictionary *thumbnailsCache;
+
 @end
 
 @implementation DealsListViewController
@@ -64,8 +54,8 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     if(self) {
         self->_pSize = KPageSize;
         self->_pNum = 1;
-        self.accountStore = [[ACAccountStore alloc] init];
-        self.apiManager = [[TWAPIManager alloc] init];
+        _imageQueue = dispatch_queue_create("com.appacitive.AppacitiveDealsNearYou.imageQueue", NULL);
+
     }
     return self;
 }
@@ -82,14 +72,13 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     [super viewDidLoad];
     
     _filteredDeals = [[NSMutableArray alloc] init];
+    _thumbnailsCache = [[NSMutableDictionary alloc] init];
     [_dealSearchbar setShowsScopeBar:NO];
     [_dealSearchbar sizeToFit];
 }
 
 - (void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(exitTheApp:) name:ExitDealFinder object:nil];
-
     [self.showMenuOutlet setTarget: self.revealViewController];
     [self.showMenuOutlet setAction: @selector( revealToggle: )];
     [self.navigationController.navigationBar addGestureRecognizer: self.revealViewController.panGestureRecognizer];
@@ -127,32 +116,6 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void) exitTheApp:(NSNotification*)notification {
-    NSLog(@"notification is %@", [[notification userInfo] objectForKey:@"Logout"]);
-    if (self.logoutOfApp != nil) {
-        self.logoutOfApp();
-    }
-}
-- (IBAction)signOutOfApp:(id)sender {
-//    APUser *user = [APUser currentUser];
-//    NSLog(@"%@ -- current user login type for facebook is %d", user.objectId, user.loggedInWithFacebook);
-//    NSLog(@"%@ -- current user login type for twitter is %d", user.objectId, user.loggedInWithTwitter);
-    
-   BOOL twitterSignUp = [ApplicationDelegate isLoggedInFromTwitter];
-    if(twitterSignUp) {
-        UIStoryboard *storyBoardTemp = [UIStoryboard storyboardWithName:@"iPhone" bundle:nil];
-        __weak SlidingViewController *sld = (SlidingViewController*) [storyBoardTemp instantiateViewControllerWithIdentifier:@"SlidingViewController"];
-        [self presentViewController:sld animated:YES completion:nil];
-       // [ApplicationDelegate logoutFromDealFinder];
-    } else if (!twitterSignUp){
-        if (self.settingsViewController == nil) {
-            self.settingsViewController = [[FBUserSettingsViewController alloc] init];
-            self.settingsViewController.delegate = self;
-        }
-        [self.navigationController pushViewController:self.settingsViewController animated:YES];
-    }
-}
-
 #pragma mark - FBUserSettingDelegate methods
 
 - (void)loginViewControllerDidLogUserOut:(id)sender {
@@ -179,7 +142,6 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
 	{
         deal = [_deals objectAtIndex:indexPath.row];
     } else {
-        NSLog(@"table is %@", [tableView class]);
         deal = [_filteredDeals objectAtIndex:indexPath.row];
     }
     
@@ -199,12 +161,39 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     UILabel *dealMilesAway = (UILabel *)[cell viewWithTag:DEAL_CELL_MILES_AWAY];
     CLLocationDistance distance = [_currentLocation distanceFromLocation:[DealsFinderHelperMethods jsonLocationStringToLatLng:deal.dealLocation]];
     dealMilesAway.text = [NSString stringWithFormat:@"%.2f km",distance];
-    UIImageView *dealImageView = (UIImageView *)[cell viewWithTag:DEAL_CELL_IMAGE];
-    [APBlob downloadImageFromRemoteUrl:@"https://s3.grouponcdn.com/images/site_images/2943/3316/RackMultipart20130123-18719-19qc5x7_grid_4.jpg" successHandler:^(UIImage *image,NSURL *url ,BOOL isCached) {
-        [dealImageView setImage:image];
-    }];
     
+    UIImageView *dealImageView = (UIImageView *)[cell viewWithTag:DEAL_CELL_IMAGE];
+    
+    NSString *thumbnailCacheKey = [NSString stringWithFormat:@"cache%d", indexPath.row];
+    
+    if (![[self.thumbnailsCache allKeys] containsObject:thumbnailCacheKey]) {
+    dispatch_async (_imageQueue, ^{
+        if (self.tableView.dragging == NO && self.tableView.decelerating == NO) {
+            [APFile downloadFileWithName:deal.dealImageUrl validUrlForTime:[NSNumber numberWithInt:43200] successHandler:^(NSData *data){
+                UIImage *image = [UIImage imageWithData:data];
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [deal setThumbnailDataForImage:image];
+                    [dealImageView setImage:[deal thumbnail]];
+                    [self.thumbnailsCache setObject:data forKey:thumbnailCacheKey];
 
+                });
+            } failureHandler:^(APError *error){
+                
+            }];
+        }
+        });        
+    } else {
+        
+        // thumbnail is in cache
+        NSData *imageData = [self.thumbnailsCache objectForKey:thumbnailCacheKey];
+        UIImage *image = [UIImage imageWithData:imageData];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+             [deal setThumbnailDataForImage:image];
+            [dealImageView setImage:[deal thumbnail]];
+        });
+    }
     return cell;
 }
 
@@ -244,14 +233,14 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
     NSString *locationQuery = [APQuery queryStringForGeoCodeProperty:@"location" location:_currentLocation distance:kKilometers raduis:@50];
     NSString *query = [NSString stringWithFormat:@"%@&%@&query=%@",[APQuery queryStringForPageNumber:_pNum],[APQuery queryStringForPageSize:_pSize], locationQuery];
     [APObject searchObjectsWithSchemaName:@"deal"
-                    withQueryString:query
-                    successHandler:^(NSDictionary *dict){
-                    NSArray *dealsArray = [dict objectForKey:@"articles"];
-                    if (_deals == nil) {
-                        _deals = [[NSMutableArray alloc] init];
-                    } else {
-                        [_deals removeAllObjects];
-                }
+            withQueryString:query
+            successHandler:^(NSDictionary *dict){
+            NSArray *dealsArray = [dict objectForKey:@"articles"];
+            if (_deals == nil) {
+                _deals = [[NSMutableArray alloc] init];
+            } else {
+                [_deals removeAllObjects];
+        }
                     [dealsArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop){
                             NSDictionary *dealDictionary = obj;
                             Deal *deal = [[Deal alloc]init];
@@ -288,13 +277,13 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
                                if (_panel) {
                                    [_panel hide];
                                }
-                               _panel = [AJNotificationView showNoticeInView:self.view
-                                                                        type:AJNotificationTypeRed
-                                                                       title:@"Error in fetching Deals! Just pull to refresh"
-                                                             linedBackground:AJLinedBackgroundTypeAnimated
-                                                                   hideAfter:3.0f response:^{}];
-                               [self.refreshControl endRefreshing];
-                           }];
+                _panel = [AJNotificationView showNoticeInView:self.view
+                            type:AJNotificationTypeRed
+                            title:@"Error in fetching Deals! Just pull to refresh"
+                            linedBackground:AJLinedBackgroundTypeAnimated
+                            hideAfter:3.0f response:^{}];
+                [self.refreshControl endRefreshing];
+        }];
 }
 
 #pragma mark location manager methods
@@ -324,22 +313,19 @@ static NSString *DealCellIdentifier = @"DealCellIdentifier";
 }
 
 
-- (BOOL)searchDisplayController:(UISearchDisplayController *)controller shouldReloadTableForSearchScope:(NSInteger)searchOption
-{
+- (BOOL)searchDisplayController:(UISearchDisplayController *)controller shouldReloadTableForSearchScope:(NSInteger)searchOption {
     [self filterContentForSearchText:[self.searchDisplayController.searchBar text] scope:
      [[self.searchDisplayController.searchBar scopeButtonTitles] objectAtIndex:searchOption]];
     return YES;
 }
 
-- (void)searchDisplayController:(UISearchDisplayController *)controller didLoadSearchResultsTableView:(UITableView *)tableView
-{
+- (void)searchDisplayController:(UISearchDisplayController *)controller didLoadSearchResultsTableView:(UITableView *)tableView {
     tableView.rowHeight = 195;
 }
 
 #pragma mark Content Filtering
 
-- (void)filterContentForSearchText:(NSString*)searchText scope:(NSString*)scope
-{
+- (void)filterContentForSearchText:(NSString*)searchText scope:(NSString*)scope {
     [_filteredDeals removeAllObjects];
     NSPredicate *predicate = [NSPredicate predicateWithFormat:@"SELF.dealTitle contains[c] %@",searchText];
     NSArray *tempArray = [_deals filteredArrayUsingPredicate:predicate];

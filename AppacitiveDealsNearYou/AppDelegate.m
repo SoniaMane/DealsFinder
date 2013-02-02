@@ -12,7 +12,7 @@
 
 //#define kTWConsumerKey @"FClGZiCSGc3wVEYu60u9A"
 //#define kTWConsumerSecret @"q5vywdaYhuWCpijH8JDuR9xo1M0VGg6elBMiaWmkQI"
-//#define kTWAuthTokenSecret @"SZGIIhuaUmOeT5mkFRkC28sk8fjOhm5AHC9rCVomU"
+//#define kTWAuthTokenSecret @"eEPpPnHsyLETS55RZNYbE9XyMIThcLFnWugWKZ1daJ4"
 
 #define kTWConsumerKey @"mj4Dmaq8ikrDAg5UTVBlw"
 #define kTWConsumerSecret @"KruMMqRqTpbDZcOT1KpxwXROPhKohQf7H9RwXhbHQ2w"
@@ -45,11 +45,11 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
 - (void) getTwitterOAuthTokenUsingReverseOAuth {
     if ([TWAPIManager isLocalTwitterAccountAvailable]) {
         UIActionSheet *sheet = [[UIActionSheet alloc]
-                                initWithTitle:@"Choose an Account"
-                                delegate:self
-                                cancelButtonTitle:nil
-                                destructiveButtonTitle:nil
-                                otherButtonTitles:nil];
+            initWithTitle:@"Choose an Account"
+            delegate:self
+            cancelButtonTitle:nil
+            destructiveButtonTitle:nil
+            otherButtonTitles:nil];
         
         for (ACAccount *acct in self.accounts) {
             [sheet addButtonWithTitle:acct.username];
@@ -88,20 +88,15 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
 
             [APUser authenticateUserWithFacebook:session.accessToken successHandler:^(){
                 isLoggedInFromTwitter = NO;
-                NSLog(@"Facebook access token is %@", session.accessToken);
-                [AJNotificationView showNoticeInView:self.window.rootViewController.view
-                    type:AJNotificationTypeGreen
-                    title:@"Successfully authenticated with facebook"
-                    linedBackground:AJLinedBackgroundTypeAnimated
-                    hideAfter:10.0f response:^{}];
-                APUser *authenticatedUser = [APUser currentUser];
-                NSLog(@"user token %@", authenticatedUser.objectId);
             } failureHandler:^(APError *error){
-                [AJNotificationView showNoticeInView:self.window.rootViewController.navigationController.view
+                _panel = [AJNotificationView showNoticeInView:self.window.rootViewController.navigationController.view
                     type:AJNotificationTypeRed
                     title:@"Login with facebook failed"
                     linedBackground:AJLinedBackgroundTypeAnimated
                     hideAfter:2.5f response:^{}];
+                if (_panel) {
+                    [_panel hide];
+                }
             }];
         }
             break;
@@ -130,7 +125,7 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
     
     if (error) {
         UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Error" message:error.localizedDescription
-                                                           delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
         [alertView show];
     }
 }
@@ -152,21 +147,41 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
          withHandler:^(NSData *responseData, NSError *error) {
              if (responseData) {
                  NSString *responseStr = [[NSString alloc]
-                                          initWithData:responseData
-                                          encoding:NSUTF8StringEncoding];                 
+                        initWithData:responseData
+                        encoding:NSUTF8StringEncoding];
                  NSArray *parts = [responseStr
                                    componentsSeparatedByString:@"&"];
                  NSString *oAuthTokenString = [parts objectAtIndex:0];                 
                  NSString *twitterOAuthToken = [[oAuthTokenString componentsSeparatedByString:@"="] objectAtIndex:1];
-                 NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-                 [userDefaults setObject:twitterOAuthToken forKey:TwitterOAuthAccessTokenKey];
-                
+                                 
                  [APUser authenticateUserWithTwitter: twitterOAuthToken oauthSecret: kTWAuthTokenSecret consumerKey:kTWConsumerKey consumerSecret:kTWConsumerSecret successHandler:^(){
+
+                _panel =  [AJNotificationView showNoticeInView:self.window.rootViewController.view
+                        type:AJNotificationTypeGreen
+                        title:@"Successfully authenticated with twitter"
+                        linedBackground:AJLinedBackgroundTypeAnimated
+                        hideAfter:10.0f response:^{}];
+                     if (_panel) {
+                         [_panel hide];
+                     }
                      isLoggedInFromTwitter = YES;
                      dispatch_async(dispatch_get_main_queue(), ^{
+                         NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+                         [userDefaults setObject:twitterOAuthToken forKey:TwitterOAuthAccessTokenKey];
+                        
                          [[NSNotificationCenter defaultCenter] postNotificationName:TwitterAccessTokenKeyReceivedNotification object:twitterOAuthToken userInfo:@{@"twitterOAuthToken":twitterOAuthToken}];
                      });
                  } failureHandler:^(APError *error){
+                     NSLog(@"twitter authentication error %@", [error description]);
+                     _panel = [AJNotificationView showNoticeInView:self.window.rootViewController.navigationController.view
+                        type:AJNotificationTypeRed
+                        title:@"Login with twitter failed"
+                        linedBackground:AJLinedBackgroundTypeAnimated
+                        hideAfter:2.5f response:^{}];
+                     if (_panel) {
+                         [_panel hide];
+                     }
+
                  }];
              }
              else {
@@ -183,10 +198,16 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
     [self obtainAccessToAccountsWithBlock:^(BOOL granted) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (granted) {
-               // _loginWithTwiterButton.enabled = YES;
+                UIStoryboard *storyBoardTemp = [UIStoryboard storyboardWithName:@"iPhone" bundle:nil];
+                __weak LoginViewController *loginViewController = (LoginViewController*) [storyBoardTemp instantiateViewControllerWithIdentifier:@"Login"];
+                
+                loginViewController.loginWithTwiterButton.enabled = YES;
             }
             else {
-                NSLog(@"You were not granted access to the Twitter accounts.");
+                _panel = [AJNotificationView showNoticeInView:self.window.rootViewController.navigationController.view                                                         type:AJNotificationTypeRed
+                    title:@"You were not granted access to the Twitter accounts."
+                    linedBackground:AJLinedBackgroundTypeAnimated
+                    hideAfter:2.5f response:^{}];
             }
         });
     }];
@@ -195,8 +216,8 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
 - (void)obtainAccessToAccountsWithBlock:(void (^)(BOOL))block
 {
     ACAccountType *twitterType = [self.accountStore
-                                  accountTypeWithAccountTypeIdentifier:
-                                  ACAccountTypeIdentifierTwitter];
+        accountTypeWithAccountTypeIdentifier:
+        ACAccountTypeIdentifierTwitter];
     
     ACAccountStoreRequestAccessCompletionHandler handler =
     ^(BOOL granted, NSError *error) {
@@ -207,32 +228,17 @@ NSString *const TwitterAccessTokenKeyReceivedNotification = @"com.appacitive.App
         block(granted);
     };
     
-    //  This method changed in iOS6.  If the new version isn't available, fall
-    //  back to the original (which means that we're running on iOS5+).
     if ([self.accountStore
          respondsToSelector:@selector(requestAccessToAccountsWithType:
                                       options:
                                       completion:)]) {
              [self.accountStore requestAccessToAccountsWithType:twitterType
-                                                    options:nil
-                                                 completion:handler];
+                options:nil
+                completion:handler];
          }
     else {
         [self.accountStore requestAccessToAccountsWithType:twitterType
-                                 withCompletionHandler:handler];
+                withCompletionHandler:handler];
     }
-}
-
-- (void) logoutFromDealFinder {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    [userDefaults setObject:nil forKey:TwitterOAuthAccessTokenKey];
-    [[NSNotificationCenter defaultCenter] postNotificationName:TwitterAccessTokenKeyReceivedNotification object:nil userInfo:@{@"twitterOAuthToken":@""}];
-    UIStoryboard *storyBoardTemp = [UIStoryboard storyboardWithName:@"iPhone" bundle:nil];
-    __weak LoginViewController *loginViewController = (LoginViewController*) [storyBoardTemp instantiateViewControllerWithIdentifier:@"Login"];
-    
-    loginViewController.loginWithTwitterSuccessful = ^() {
-        [loginViewController dismissViewControllerAnimated:YES completion:nil];
-    };
-    [self.window.rootViewController presentViewController:loginViewController animated:YES completion:nil];
 }
 @end
